@@ -97,13 +97,6 @@ export default function AddToHomeScreen() {
               </span>
               을 누르고 <strong>홈화면에 추가</strong>를 선택하세요.
             </p>
-            <button
-              className="mt-3 min-h-[38px] w-full cursor-pointer rounded-lg border border-border-default text-sm font-medium text-text-primary hover:bg-surface-subtle"
-              type="button"
-              onClick={handleDismiss}
-            >
-              나중에
-            </button>
           </div>
         ) : (
           <div>
@@ -115,11 +108,11 @@ export default function AddToHomeScreen() {
             </p>
             <div className="mt-3 flex gap-2">
               <button
-                className="min-h-[38px] flex-1 cursor-pointer rounded-lg bg-action-default text-sm font-semibold text-white hover:bg-action-hover"
+                className="mt-3 min-h-[38px] w-full cursor-pointer rounded-lg bg-action-default text-sm font-semibold text-white hover:bg-action-hover"
                 type="button"
-                onClick={handleDismiss}
+                onClick={handleInstall}
               >
-                괜찮아요
+                홈화면에 추가
               </button>
             </div>
           </div>

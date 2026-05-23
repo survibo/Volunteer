@@ -12,6 +12,7 @@ export default function MyPageEditPage({ profile }) {
     address: profile.address ?? '',
     workplace_or_school: profile.workplace_or_school ?? '',
     license_number: profile.license_number ?? '',
+    experience: profile.experience ?? '',
   })
   const [baseAddress, setBaseAddress] = useState('')
   const [detailAddress, setDetailAddress] = useState('')
@@ -46,6 +47,7 @@ export default function MyPageEditPage({ profile }) {
     const address_detail = detailAddress.trim()
     const workplace_or_school = form.workplace_or_school.trim()
     const license_number = form.license_number.trim()
+    const experience = form.experience.trim() || null
 
     if (!name || !phone || !email || !address || !address_detail || !workplace_or_school) {
       setSaving(false)
@@ -62,6 +64,7 @@ export default function MyPageEditPage({ profile }) {
         address_detail: address_detail || '',
         workplace_or_school,
         license_number: license_number || null,
+        experience,
       })
       navigate('/mypage', { replace: true })
     } catch (error) {
@@ -85,7 +88,7 @@ export default function MyPageEditPage({ profile }) {
         onSubmit={handleSubmit}
       >
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-          이름
+          이름 <span className="text-status-error-text">*</span>
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
             name="name"
@@ -95,7 +98,7 @@ export default function MyPageEditPage({ profile }) {
           />
         </label>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-          연락처
+          연락처 <span className="text-status-error-text">*</span>
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
             name="phone"
@@ -105,7 +108,7 @@ export default function MyPageEditPage({ profile }) {
           />
         </label>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-          이메일
+          이메일 <span className="text-status-error-text">*</span>
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
             name="email"
@@ -116,7 +119,7 @@ export default function MyPageEditPage({ profile }) {
           />
         </label>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-          주소
+          주소 <span className="text-status-error-text">*</span>
           <div className="flex gap-2">
             <input
               className="min-h-11 flex-1 rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
@@ -135,7 +138,7 @@ export default function MyPageEditPage({ profile }) {
           </div>
         </label>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-          상세주소
+          상세주소 <span className="text-status-error-text">*</span>
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
             required
@@ -145,7 +148,7 @@ export default function MyPageEditPage({ profile }) {
           />
         </label>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-          근무지 또는 학교
+          근무지 또는 학교 <span className="text-status-error-text">*</span>
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
             name="workplace_or_school"
@@ -163,6 +166,17 @@ export default function MyPageEditPage({ profile }) {
               onChange={updateField}
               inputMode="numeric"
             />
+        </label>
+        <label className="col-span-full grid gap-2 text-xs font-semibold text-text-secondary">
+          과거 이력 / 활동 경력
+          <textarea
+            className="min-h-24 w-full resize-y rounded-lg border border-border-default bg-white px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+            name="experience"
+            value={form.experience}
+            onChange={updateField}
+            placeholder="봉사활동, 교육, 자격증 등 관련 경력을 입력해 주세요."
+            rows={3}
+          />
         </label>
 
         {errorMessage && <p className="text-sm leading-normal text-status-error-text">{errorMessage}</p>}

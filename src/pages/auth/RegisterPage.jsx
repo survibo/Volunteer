@@ -11,6 +11,7 @@ const emptyForm = {
   address_detail: '',
   workplace_or_school: '',
   license_number: '',
+  experience: '',
 }
 
 export default function RegisterPage() {
@@ -96,6 +97,7 @@ export default function RegisterPage() {
     const address_detail = form.address_detail.trim() || ''
     const workplace_or_school = form.workplace_or_school.trim()
     const license_number = form.license_number.trim() || null
+    const experience = form.experience.trim() || null
 
     if (!name || !phone || !email || !address || !address_detail || !workplace_or_school) {
       setSaving(false)
@@ -113,6 +115,7 @@ export default function RegisterPage() {
       address_detail,
       workplace_or_school,
       license_number,
+      experience,
     }
 
     try {
@@ -159,7 +162,7 @@ export default function RegisterPage() {
         </h1>
         <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-            이름
+            이름 <span className="text-status-error-text">*</span>
             <input
               className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="name"
@@ -169,7 +172,7 @@ export default function RegisterPage() {
             />
           </label>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-            연락처
+            연락처 <span className="text-status-error-text">*</span>
             <input
               className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="phone"
@@ -179,7 +182,7 @@ export default function RegisterPage() {
             />
           </label>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-            이메일
+            이메일 <span className="text-status-error-text">*</span>
             <input
               className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="email"
@@ -190,7 +193,7 @@ export default function RegisterPage() {
             />
           </label>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-            주소
+            주소 <span className="text-status-error-text">*</span>
             <div className="flex gap-2">
               <input
                 className="min-h-11 flex-1 rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
@@ -210,7 +213,7 @@ export default function RegisterPage() {
             </div>
           </label>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-            상세주소
+            상세주소 <span className="text-status-error-text">*</span>
             <input
               className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="address_detail"
@@ -221,7 +224,7 @@ export default function RegisterPage() {
             />
           </label>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-            근무지 or 학교명
+            근무지 or 학교명 <span className="text-status-error-text">*</span>
             <input
               className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="workplace_or_school"
@@ -238,6 +241,17 @@ export default function RegisterPage() {
               value={form.license_number}
               onChange={updateField}
               inputMode="numeric"
+            />
+          </label>
+          <label className="col-span-full grid gap-2 text-xs font-semibold text-text-secondary">
+            과거 이력 / 활동 경력
+            <textarea
+              className="min-h-24 w-full resize-y rounded-lg border border-border-default bg-white px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+              name="experience"
+              value={form.experience}
+              onChange={updateField}
+              placeholder="봉사활동, 교육, 자격증 등 관련 경력을 입력해 주세요."
+              rows={3}
             />
           </label>
           {errorMessage && <p className="col-span-full text-sm leading-normal text-status-error-text">{errorMessage}</p>}
