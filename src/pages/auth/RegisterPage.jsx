@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import DaumPostcodeEmbed from 'react-daum-postcode'
-import { createPendingProfile, getCurrentProfile, getHomePath } from '../../lib/auth'
+import { cancelRegistration, createPendingProfile, getCurrentProfile, getHomePath } from '../../lib/auth'
 
 const emptyForm = {
   name: '',
@@ -19,6 +19,8 @@ export default function RegisterPage() {
   const [form, setForm] = useState(emptyForm)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [showPostcode, setShowPostcode] = useState(false)
 
@@ -123,6 +125,21 @@ export default function RegisterPage() {
     }
   }
 
+  async function handleCancel() {
+    setCancelling(true)
+    setErrorMessage('')
+
+    try {
+      await cancelRegistration()
+      navigate('/', { replace: true })
+    } catch (error) {
+      setErrorMessage(error.message)
+    } finally {
+      setCancelling(false)
+      setShowCancelConfirm(false)
+    }
+  }
+
   if (loading) {
     return (
       <main className="flex h-screen flex-col overflow-y-auto px-4 py-8 md:p-6">
@@ -223,7 +240,7 @@ export default function RegisterPage() {
               inputMode="numeric"
             />
           </label>
-          {errorMessage && <p className="col-span-full mt-3.5 text-sm leading-normal text-status-error-text">{errorMessage}</p>}
+          {errorMessage && <p className="col-span-full text-sm leading-normal text-status-error-text">{errorMessage}</p>}
           <button
             className="col-span-full min-h-[44px] cursor-pointer rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
             disabled={saving}
@@ -231,7 +248,54 @@ export default function RegisterPage() {
           >
             {saving ? '등록 중' : '회원 등록'}
           </button>
+          <button
+            className="col-span-full min-h-[44px] cursor-pointer rounded-xl border border-red-200 bg-red-50 px-5 font-semibold text-red-600 hover:border-red-300 hover:bg-red-100 disabled:cursor-progress disabled:opacity-65"
+            type="button"
+            disabled={saving || cancelling}
+            onClick={() => setShowCancelConfirm(true)}
+          >
+            {cancelling ? '취소 중' : '회원가입 취소하기'}
+          </button>
         </form>
+
+        {showCancelConfirm && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setShowCancelConfirm(false)}
+          >
+            <div
+              className="w-full max-w-sm rounded-xl bg-surface-base p-6 shadow-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-status-error-text">
+                회원가입 취소
+              </p>
+              <h2 className="text-lg font-bold text-text-primary">
+                정말 취소하시겠어요?
+              </h2>
+              <p className="mt-2 text-sm text-text-secondary">
+                가입 정보가 저장되지 않으며 이전 화면으로 돌아갑니다.
+              </p>
+              <div className="mt-5 flex gap-2.5">
+                <button
+                  className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-status-error-text px-5 font-semibold text-white hover:opacity-80 disabled:cursor-progress disabled:opacity-65"
+                  disabled={cancelling}
+                  type="button"
+                  onClick={handleCancel}
+                >
+                  {cancelling ? '취소 중' : '취소하기'}
+                </button>
+                <button
+                  className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"
+                  type="button"
+                  onClick={() => setShowCancelConfirm(false)}
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {showPostcode && (

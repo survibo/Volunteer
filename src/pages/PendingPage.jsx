@@ -18,7 +18,7 @@ export default function PendingPage({ profile }) {
   return (
     <section className="grid gap-6">
       <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">
-        회원 가입
+        가입비 납부
       </p>
       <h1 className="max-w-3xl text-3xl font-bold leading-tight text-text-primary md:text-5xl">
         {profile.name}님, <br />등록이 완료되었습니다.

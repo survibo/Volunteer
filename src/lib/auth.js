@@ -86,6 +86,16 @@ export async function createPendingProfile(payload) {
   }
 }
 
+export async function cancelRegistration() {
+  const { error } = await supabase.rpc('cancel_registration')
+
+  if (error) {
+    throw error
+  }
+
+  await supabase.auth.signOut()
+}
+
 export async function withdrawCurrentUser() {
   const { error } = await supabase.rpc('withdraw_current_user')
 

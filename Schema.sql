@@ -818,6 +818,19 @@ begin
 end;
 $$;
 
+drop function if exists public.cancel_registration();
+create function public.cancel_registration()
+returns void
+language plpgsql
+security definer
+set search_path = auth, public
+as $$
+begin
+  delete from auth.users where id = (select auth.uid());
+end;
+$$;
+
+revoke all on function public.cancel_registration() from public;
 revoke all on function public.approve_member(uuid, text) from public;
 revoke all on function public.grant_admin(uuid, text) from public;
 revoke all on function public.update_own_profile(text, text, text, text, text, text, text) from public;
@@ -827,6 +840,7 @@ revoke all on function public.cancel_own_education_application(uuid) from public
 revoke all on function public.decide_volunteer_application(uuid, public.application_status, text) from public;
 revoke all on function public.decide_education_application(uuid, public.application_status, text) from public;
 
+grant execute on function public.cancel_registration() to authenticated;
 grant execute on function public.approve_member(uuid, text) to authenticated;
 grant execute on function public.grant_admin(uuid, text) to authenticated;
 grant execute on function public.update_own_profile(text, text, text, text, text, text, text) to authenticated;
