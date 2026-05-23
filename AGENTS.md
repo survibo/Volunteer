@@ -1,3 +1,6 @@
+Design for mobile first (phone screen as baseline).
+Ensure layout does not break on desktop — use responsive design (e.g., max-width containers, flexbox/grid that scale up gracefully).
+
 Don't use TDD if user doesn't comment
 Use UTF-8
 ASK as text
@@ -54,14 +57,3 @@ Transform tasks into verifiable goals:
 - "Refactor X" → "Ensure tests pass before and after"
 
 For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
----
-
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
