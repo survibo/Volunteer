@@ -38,7 +38,7 @@ export default function LoginPage() {
           </button>
           <button
             className="min-h-[44px] w-full cursor-pointer rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle disabled:cursor-progress disabled:opacity-65 md:w-auto"
-            disabled={loadingProvider !== ''}
+            disabled={true}
             type="button"
             onClick={() => signIn('kakao')}
           >

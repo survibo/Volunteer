@@ -33,3 +33,15 @@ export async function uploadActivityImages(kind, files) {
 
   return uploaded
 }
+
+export async function removeVolunteerImages(paths) {
+  if (paths.length === 0) {
+    return
+  }
+
+  const { error } = await supabase.storage.from(bucketName).remove(paths)
+
+  if (error) {
+    throw error
+  }
+}

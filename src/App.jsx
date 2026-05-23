@@ -6,6 +6,7 @@ import ActivityDetailPage from './pages/activity/ActivityDetailPage'
 import AdminPage from './pages/admin/AdminPage'
 import AdminActivityEditPage from './pages/admin/AdminActivityEditPage'
 import AdminApplicationsPage from './pages/admin/AdminApplicationsPage'
+import AdminMemberDetailPage from './pages/admin/AdminMemberDetailPage'
 import AuthCallbackPage from './pages/auth/AuthCallbackPage'
 import ComingSoonPage from './pages/ComingSoonPage'
 import CreateEducationPage from './pages/admin/CreateEducationPage'
@@ -197,7 +198,7 @@ export default function App() {
         />
         <Route
           path="/admin/members/:id"
-          element={<ProtectedRoute adminOnly>{() => <ComingSoonPage />}</ProtectedRoute>}
+          element={<ProtectedRoute adminOnly>{() => <AdminMemberDetailPage />}</ProtectedRoute>}
         />
         <Route
           path="/admin/members/withdrawn"

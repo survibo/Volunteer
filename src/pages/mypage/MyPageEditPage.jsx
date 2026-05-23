@@ -8,7 +8,9 @@ export default function MyPageEditPage({ profile }) {
     name: profile.name ?? '',
     phone: profile.phone ?? '',
     email: profile.email ?? '',
+    address: profile.address ?? '',
     workplace_or_school: profile.workplace_or_school ?? '',
+    license_number: profile.license_number ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -26,11 +28,13 @@ export default function MyPageEditPage({ profile }) {
     const name = form.name.trim()
     const phone = form.phone.trim()
     const email = form.email.trim()
+    const address = form.address.trim()
     const workplace_or_school = form.workplace_or_school.trim()
+    const license_number = form.license_number.trim()
 
-    if (!name || !phone || !email) {
+    if (!name || !phone || !email || !address) {
       setSaving(false)
-      setErrorMessage('이름, 연락처, 이메일을 모두 입력해 주세요.')
+      setErrorMessage('이름, 연락처, 이메일, 주소를 모두 입력해 주세요.')
       return
     }
 
@@ -39,9 +43,9 @@ export default function MyPageEditPage({ profile }) {
         name,
         phone,
         email,
-        address: profile.address,
+        address,
         workplace_or_school,
-        license_number: profile.license_number,
+        license_number: license_number || null,
       })
       navigate('/mypage', { replace: true })
     } catch (error) {
@@ -96,11 +100,30 @@ export default function MyPageEditPage({ profile }) {
           />
         </label>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
+          주소
+          <input
+            className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+            name="address"
+            required
+            value={form.address}
+            onChange={updateField}
+          />
+        </label>
+        <label className="grid gap-2 text-xs font-semibold text-text-secondary">
           근무지 또는 학교
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
             name="workplace_or_school"
             value={form.workplace_or_school}
+            onChange={updateField}
+          />
+        </label>
+        <label className="grid gap-2 text-xs font-semibold text-text-secondary">
+          면허번호
+          <input
+            className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+            name="license_number"
+            value={form.license_number}
             onChange={updateField}
           />
         </label>

@@ -1,6 +1,27 @@
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
+import { useState } from 'react'
+import { signOut } from '../../lib/auth'
+
+function formatDate(iso) {
+  if (!iso) return '-'
+  const d = new Date(iso)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}.${m}.${day}`
+}
 
 export default function MyPage({ profile }) {
+  const navigate = useNavigate()
+  const [showSignOutModal, setShowSignOutModal] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+
+  async function handleSignOut() {
+    setSigningOut(true)
+    await signOut()
+    navigate('/', { replace: true })
+  }
+
   return (
     <section className="grid gap-6">
       <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
@@ -31,10 +52,68 @@ export default function MyPage({ profile }) {
           <dd className="m-0">{profile.email}</dd>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+          <dt className="font-medium text-text-secondary">주소</dt>
+          <dd className="m-0">{profile.address}</dd>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
           <dt className="font-medium text-text-secondary">근무지/학교</dt>
           <dd className="m-0">{profile.workplace_or_school || '-'}</dd>
         </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+          <dt className="font-medium text-text-secondary">면허번호</dt>
+          <dd className="m-0">{profile.license_number || '-'}</dd>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+          <dt className="font-medium text-text-secondary">가입일</dt>
+          <dd className="m-0">{formatDate(profile.created_at)}</dd>
+        </div>
       </dl>
+      <div className="border-t border-border-default pt-6">
+        <button
+          className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-red-200 bg-red-50 px-5 font-semibold text-red-600 hover:border-red-300 hover:bg-red-100 sm:w-auto"
+          type="button"
+          onClick={() => setShowSignOutModal(true)}
+        >
+          로그아웃
+        </button>
+      </div>
+      {showSignOutModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowSignOutModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-surface-base p-6 shadow-lg"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-status-error-text">
+              로그아웃
+            </p>
+            <h2 className="text-lg font-bold text-text-primary">로그아웃할까요?</h2>
+            <p className="mt-2 text-sm text-text-secondary">
+              현재 계정에서 로그아웃하고 로그인 화면으로 이동합니다.
+            </p>
+            <div className="mt-5 flex gap-2.5">
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-status-error-text px-5 font-semibold text-white hover:opacity-80 disabled:cursor-progress disabled:opacity-65"
+                disabled={signingOut}
+                type="button"
+                onClick={handleSignOut}
+              >
+                {signingOut ? '로그아웃 중' : '로그아웃'}
+              </button>
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"
+                disabled={signingOut}
+                type="button"
+                onClick={() => setShowSignOutModal(false)}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

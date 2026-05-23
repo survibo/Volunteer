@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
-import { CheckCheck, X } from "lucide-react";
+import { CheckCheck, Download, X } from "lucide-react";
 import {
   decideApplications,
   getActivityMaybe,
@@ -15,6 +15,12 @@ const statusLabel = {
   rejected: "거절됨",
   cancelled: "취소됨",
 };
+
+const exportStatusOptions = [
+  { value: "accepted", label: "수락됨" },
+  { value: "rejected", label: "거절" },
+  { value: "pending", label: "대기중" },
+];
 
 function applicantMemberLabel(user) {
   if (user?.role === "member" && user.member_number) {
@@ -48,6 +54,30 @@ function statusBadgeClass(status) {
   return "bg-amber-50 text-amber-700 ring-1 ring-amber-100";
 }
 
+function formatExportDate(iso) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${d} ${hh}:${mm}`;
+}
+
+function safeFilename(value) {
+  return value.replace(/[\\/:*?"<>|]/g, "_").trim() || "applications";
+}
+
+function formatFilenameDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${y}${m}${d}_${hh}${mm}`;
+}
+
 export default function AdminApplicationsPage({ table }) {
   const { id } = useParams();
   const kind = getActivityKind(table);
@@ -58,6 +88,8 @@ export default function AdminApplicationsPage({ table }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [processing, setProcessing] = useState(null);
   const [cancelConfirm, setCancelConfirm] = useState(null);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportStatuses, setExportStatuses] = useState(() => new Set(["accepted", "rejected", "pending"]));
 
   useEffect(() => {
     let mounted = true;
@@ -147,6 +179,48 @@ export default function AdminApplicationsPage({ table }) {
     await handleDecide(applicationIds, "cancelled");
   }
 
+  function toggleExportStatus(status) {
+    setExportStatuses((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) {
+        next.delete(status);
+      } else {
+        next.add(status);
+      }
+      return next;
+    });
+  }
+
+  async function exportApplications() {
+    const XLSX = await import("xlsx");
+    const selectedStatuses = [...exportStatuses];
+    const rows = applications
+      .filter((app) => selectedStatuses.includes(app.status))
+      .map((app) => ({
+        이름: app.users?.name ?? "",
+        회원번호: applicantMemberLabel(app.users),
+        소속: app.users?.workplace_or_school ?? "",
+        전화번호: app.users?.phone ?? "",
+        이메일: app.users?.email ?? "",
+        "신청 일시": formatExportDate(app.created_at),
+      }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    worksheet["!cols"] = [
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 24 },
+      { wch: 16 },
+      { wch: 28 },
+      { wch: 18 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "신청 현황");
+    XLSX.writeFile(workbook, `${safeFilename(activity.title)}_신청현황_${formatFilenameDate(new Date())}.xlsx`);
+    setExportModalOpen(false);
+  }
+
   if (loading) {
     return (
       <section className="grid gap-6">
@@ -182,6 +256,14 @@ export default function AdminApplicationsPage({ table }) {
           신청 현황
         </h1>
         <p className="mt-2 text-sm text-text-secondary">{activity.title}</p>
+        <button
+          className="mt-4 inline-flex min-h-[38px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-border-default bg-white px-4 text-sm font-semibold text-text-primary hover:bg-surface-subtle"
+          type="button"
+          onClick={() => setExportModalOpen(true)}
+        >
+          <Download size={16} />
+          Excel 추출
+        </button>
       </div>
 
       {selectedIds.size > 0 && (
@@ -347,6 +429,63 @@ export default function AdminApplicationsPage({ table }) {
                 className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"
                 type="button"
                 onClick={() => setCancelConfirm(null)}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {exportModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setExportModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-surface-base p-6 shadow-lg"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">
+              Excel 추출
+            </p>
+            <h2 className="text-lg font-bold text-text-primary">
+              추출할 신청 상태를 선택하세요.
+            </h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {exportStatusOptions.map((option) => {
+                const selected = exportStatuses.has(option.value);
+                return (
+                  <button
+                    key={option.value}
+                    className={
+                      selected
+                        ? "min-h-[38px] rounded-lg bg-action-default px-4 text-sm font-semibold text-white"
+                        : "min-h-[38px] rounded-lg border border-border-default bg-white px-4 text-sm font-semibold text-text-secondary hover:bg-surface-subtle"
+                    }
+                    type="button"
+                    onClick={() => toggleExportStatus(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-sm text-text-secondary">
+              이름, 회원번호, 소속, 전화번호, 이메일, 신청 일시가 포함됩니다.
+            </p>
+            <div className="mt-5 flex gap-2.5">
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={exportStatuses.size === 0}
+                type="button"
+                onClick={exportApplications}
+              >
+                추출
+              </button>
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"
+                type="button"
+                onClick={() => setExportModalOpen(false)}
               >
                 닫기
               </button>

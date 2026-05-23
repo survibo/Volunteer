@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { parseImagePaths, removeVolunteerImages } from './storageApi'
 
 export const activityConfigs = {
   volunteer: {
@@ -125,6 +126,11 @@ export async function updateActivity(kind, id, payload) {
 
 export async function deleteActivity(kind, id) {
   const cfg = getActivityConfig(kind)
+  const activity = await getActivity(kind, id)
+  const imagePaths = parseImagePaths(activity.image_path)
+
+  await removeVolunteerImages(imagePaths)
+
   const { error } = await supabase.from(cfg.table).delete().eq('id', id)
 
   throwIfError(error)

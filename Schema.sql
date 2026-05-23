@@ -91,13 +91,13 @@ create table if not exists public.users (
     check (member_number is null or member_number ~ '^\d{2}-\d{4}$'),
   constraint users_member_number_required_for_member_check
     check (
-      (role = 'member' and member_number is not null and approved_at is not null)
-      or (role <> 'member' and member_number is null)
+      (role in ('member', 'admin') and member_number is not null and approved_at is not null)
+      or (role = 'pending' and member_number is null)
     ),
   constraint users_approval_metadata_check
     check (
-      (role = 'member' and approved_at is not null)
-      or (role <> 'member' and approved_at is null and approved_by is null)
+      (role in ('member', 'admin') and approved_at is not null)
+      or (role = 'pending' and approved_at is null and approved_by is null)
     )
 );
 
@@ -122,6 +122,71 @@ create table if not exists public.member_number_sequences (
   constraint member_number_sequences_last_sequence_check
     check (last_sequence between 0 and 9999)
 );
+
+alter table public.users
+  drop constraint if exists users_member_number_required_for_member_check,
+  drop constraint if exists users_approval_metadata_check;
+
+do $$
+declare
+  sequence_year smallint := to_char(now(), 'YY')::smallint;
+  next_sequence integer;
+  issued_member_number text;
+  target_user_id uuid;
+begin
+  insert into public.member_number_sequences(year, last_sequence)
+  values (sequence_year, 0)
+  on conflict (year) do nothing;
+
+  select greatest(
+    mns.last_sequence,
+    coalesce(max(substring(u.member_number from 4 for 4)::integer), 0)
+  )
+  into next_sequence
+  from public.member_number_sequences mns
+  left join public.users u
+    on u.member_number like lpad(sequence_year::text, 2, '0') || '-%'
+  where mns.year = sequence_year
+  group by mns.last_sequence;
+
+  for target_user_id in
+    select id
+    from public.users
+    where role = 'admin'
+      and (member_number is null or approved_at is null)
+    order by created_at
+  loop
+    next_sequence := next_sequence + 1;
+
+    if next_sequence > 9999 then
+      raise exception 'member number sequence exhausted for year %', sequence_year;
+    end if;
+
+    issued_member_number := lpad(sequence_year::text, 2, '0') || '-' || lpad(next_sequence::text, 4, '0');
+
+    update public.users
+    set member_number = coalesce(member_number, issued_member_number),
+        approved_at = coalesce(approved_at, now())
+    where id = target_user_id;
+  end loop;
+
+  update public.member_number_sequences
+  set last_sequence = next_sequence
+  where year = sequence_year;
+end;
+$$;
+
+alter table public.users
+  add constraint users_member_number_required_for_member_check
+    check (
+      (role in ('member', 'admin') and member_number is not null and approved_at is not null)
+      or (role = 'pending' and member_number is null)
+    ),
+  add constraint users_approval_metadata_check
+    check (
+      (role in ('member', 'admin') and approved_at is not null)
+      or (role = 'pending' and approved_at is null and approved_by is null)
+    );
 
 
 -- =============================================================================
@@ -570,6 +635,82 @@ begin
 end;
 $$;
 
+create or replace function public.grant_admin(target_user_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  sequence_year smallint := to_char(now(), 'YY')::smallint;
+  next_sequence integer;
+  issued_member_number text;
+  target_profile public.users%rowtype;
+begin
+  if not private.is_admin() then
+    raise exception 'admin permission required';
+  end if;
+
+  select *
+  into target_profile
+  from public.users
+  where id = target_user_id
+    and role in ('pending', 'member')
+  for update;
+
+  if not found then
+    raise exception 'target user is not an active pending or member user';
+  end if;
+
+  if target_profile.role = 'member' then
+    update public.users
+    set role = 'admin'
+    where id = target_user_id
+      and role = 'member';
+
+    if not found then
+      raise exception 'target user admin grant failed';
+    end if;
+
+    return target_profile.member_number;
+  end if;
+
+  insert into public.member_number_sequences(year, last_sequence)
+  values (sequence_year, 0)
+  on conflict (year) do nothing;
+
+  select last_sequence + 1
+  into next_sequence
+  from public.member_number_sequences
+  where year = sequence_year
+  for update;
+
+  if next_sequence > 9999 then
+    raise exception 'member number sequence exhausted for year %', sequence_year;
+  end if;
+
+  update public.member_number_sequences
+  set last_sequence = next_sequence
+  where year = sequence_year;
+
+  issued_member_number := lpad(sequence_year::text, 2, '0') || '-' || lpad(next_sequence::text, 4, '0');
+
+  update public.users
+  set role = 'admin',
+      member_number = issued_member_number,
+      approved_at = now(),
+      approved_by = (select auth.uid())
+  where id = target_user_id
+    and role = 'pending';
+
+  if not found then
+    raise exception 'target user admin grant failed';
+  end if;
+
+  return issued_member_number;
+end;
+$$;
+
 create or replace function public.update_own_profile(
   new_name text,
   new_phone text,
@@ -799,6 +940,7 @@ end;
 $$;
 
 revoke all on function public.approve_member(uuid) from public;
+revoke all on function public.grant_admin(uuid) from public;
 revoke all on function public.update_own_profile(text, text, text, text, text, text) from public;
 revoke all on function public.cancel_own_volunteer_application(uuid) from public;
 revoke all on function public.withdraw_current_user() from public;
@@ -807,6 +949,7 @@ revoke all on function public.decide_volunteer_application(uuid, public.applicat
 revoke all on function public.decide_education_application(uuid, public.application_status, text) from public;
 
 grant execute on function public.approve_member(uuid) to authenticated;
+grant execute on function public.grant_admin(uuid) to authenticated;
 grant execute on function public.update_own_profile(text, text, text, text, text, text) to authenticated;
 grant execute on function public.cancel_own_volunteer_application(uuid) to authenticated;
 grant execute on function public.withdraw_current_user() to authenticated;
