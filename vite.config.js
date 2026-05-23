@@ -12,9 +12,9 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "apple-touch-icon.png", "robots.txt", "pdf.worker.min.mjs"],
       manifest: {
-        name: "Volunteer",
-        short_name: "Volunteer",
-        description: "봉사활동과 교육 신청을 관리하는 앱",
+        name: "K-SPARA",
+        short_name: "K-SPARA",
+        description: "K-SPARA 접수용 웹/앱 입니다.",
         theme_color: "#3b82f6",
         background_color: "#f1f2f5",
         display: "standalone",

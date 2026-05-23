@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
 import AppFrame from './components/AppFrame'
+import AddToHomeScreen from './components/AddToHomeScreen'
 import ReloadPrompt from './components/ReloadPrompt'
 import TopLoadingBar from './components/TopLoadingBar'
 import { getCurrentProfile, getHomePath } from './lib/auth'
@@ -137,6 +138,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <ReloadPrompt />
+      <AddToHomeScreen />
       <Routes>
         <Route
           path="/"
