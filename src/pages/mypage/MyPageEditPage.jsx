@@ -158,10 +158,11 @@ export default function MyPageEditPage({ profile }) {
           면허번호
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
-            name="license_number"
-            value={form.license_number}
-            onChange={updateField}
-          />
+              name="license_number"
+              value={form.license_number}
+              onChange={updateField}
+              inputMode="numeric"
+            />
         </label>
 
         {errorMessage && <p className="text-sm leading-normal text-status-error-text">{errorMessage}</p>}

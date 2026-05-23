@@ -24,8 +24,7 @@ export default function PendingPage({ profile }) {
         {profile.name}님, <br />등록이 완료되었습니다.
       </h1>
       <p className="max-w-2xl text-sm text-text-secondary">
-        가입비 확인 후 관리자가 회원번호를 부여합니다. <br />
-        봉사활동과 교육 신청은 이용할 수 있습니다.
+        가입비 확인 후 관리자가 회원번호를 부여합니다.
       </p>
       <p className="text-sm text-text-secondary">
         아래 계좌로 가입비를 입금해 주세요.

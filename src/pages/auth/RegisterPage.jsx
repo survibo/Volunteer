@@ -220,6 +220,7 @@ export default function RegisterPage() {
               name="license_number"
               value={form.license_number}
               onChange={updateField}
+              inputMode="numeric"
             />
           </label>
           {errorMessage && <p className="col-span-full mt-3.5 text-sm leading-normal text-status-error-text">{errorMessage}</p>}

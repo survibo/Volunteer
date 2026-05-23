@@ -19,9 +19,14 @@ function categorize(activities) {
     const deadline = new Date(a.application_deadline);
     const ends = new Date(a.ends_at);
 
-    if (ends <= now) {
+    const deadlineEnd = new Date(deadline);
+    deadlineEnd.setHours(23, 59, 59, 999);
+    const endsEnd = new Date(ends);
+    endsEnd.setHours(23, 59, 59, 999);
+
+    if (endsEnd <= now) {
       groups.completed.push(a);
-    } else if (deadline > now) {
+    } else if (deadlineEnd >= now) {
       groups.recruiting.push(a);
     } else {
       groups.ongoing.push(a);
@@ -29,10 +34,10 @@ function categorize(activities) {
   }
 
   groups.recruiting.sort(
-    (a, b) => new Date(a.starts_at) - new Date(b.starts_at)
+    (a, b) => new Date(b.created_at) - new Date(a.created_at)
   );
-  groups.ongoing.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
-  groups.completed.sort((a, b) => new Date(b.ends_at) - new Date(a.ends_at));
+  groups.ongoing.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  groups.completed.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   return groups;
 }
