@@ -70,7 +70,7 @@ export default function MyPage({ profile }) {
               className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-border-default bg-white px-5 font-semibold text-text-primary hover:bg-surface-subtle sm:w-auto"
               to="/pending"
             >
-              회원 가입
+              가입비 납부
             </Link>
           )}
           <Link
