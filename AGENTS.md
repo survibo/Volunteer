@@ -1,3 +1,7 @@
+Don't use TDD if user doesn't comment
+Use UTF-8
+ASK as text
+
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
