@@ -178,6 +178,16 @@ export default function ActivityDetailPage({ table, profile }) {
           </div>
         )}
       </div>
+      {application.status === "accepted" && activity.chat_link && (
+        <a
+          className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover"
+          href={activity.chat_link}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          오픈채팅방 입장
+        </a>
+      )}
       {imageUrls.length > 0 && (
         <div className="flex flex-col gap-3">
           {imageUrls.map((url, i) => (
