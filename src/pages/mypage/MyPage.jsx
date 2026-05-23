@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
 import { signOut, withdrawCurrentUser } from "../../lib/auth";
+import { downloadMemberCert } from "../../lib/pdfCert";
 
 function formatDate(iso) {
   if (!iso) return "-";
@@ -17,6 +18,7 @@ export default function MyPage({ profile }) {
   const [signingOut, setSigningOut] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -42,12 +44,34 @@ export default function MyPage({ profile }) {
             {profile.name}
           </h1>
         </div>
-        <Link
-          className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover sm:w-auto"
-          to="/mypage/edit"
-        >
-          프로필 수정
-        </Link>
+        <div className="flex gap-2.5">
+          {profile.role !== "pending" && (
+            <button
+              className="inline-flex min-h-[44px] cursor-pointer items-center justify-center min-w-fit rounded-xl border border-border-default bg-white px-5 font-semibold text-text-primary hover:bg-surface-subtle disabled:cursor-progress disabled:opacity-65 sm:w-auto"
+              disabled={pdfLoading}
+              type="button"
+              onClick={async () => {
+                setPdfLoading(true);
+                try {
+                  const blob = await downloadMemberCert(profile, true);
+                  window.open(URL.createObjectURL(blob), "_blank");
+                } catch (e) {
+                  alert(e.message);
+                } finally {
+                  setPdfLoading(false);
+                }
+              }}
+            >
+              {pdfLoading ? "로딩 중" : "회원증"}
+            </button>
+          )}
+          <Link
+            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover sm:w-auto"
+            to="/mypage/edit"
+          >
+            프로필 수정
+          </Link>
+        </div>
       </div>
       <dl className="m-0 grid gap-4 rounded-xl border border-border-default bg-surface-base p-5 sm:p-6">
         <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">

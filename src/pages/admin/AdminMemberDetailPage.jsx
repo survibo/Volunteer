@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import TopLoadingBar from '../../components/TopLoadingBar'
 import { approveMember, cancelMemberApproval, getMember, grantAdmin } from '../../lib/memberApi'
+import { downloadMemberCert } from '../../lib/pdfCert'
 
 function roleLabel(role) {
   if (role === 'admin') return '관리자'
@@ -50,6 +51,7 @@ export default function AdminMemberDetailPage() {
   const [member, setMember] = useState(null)
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [confirmAction, setConfirmAction] = useState(null)
   const [memberNumberInput, setMemberNumberInput] = useState('')
@@ -174,6 +176,25 @@ export default function AdminMemberDetailPage() {
           >
             활동 내역
           </Link>
+          {member.role !== 'pending' && (
+            <button
+              className="inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-lg border border-border-default bg-white px-4 text-sm font-semibold text-text-primary hover:bg-surface-subtle disabled:cursor-progress disabled:opacity-65"
+              disabled={downloading}
+              type="button"
+              onClick={async () => {
+                setDownloading(true)
+                try {
+                  await downloadMemberCert(member)
+                } catch (e) {
+                  setErrorMessage(e.message)
+                } finally {
+                  setDownloading(false)
+                }
+              }}
+            >
+              {downloading ? '생성 중' : '회원증 PDF'}
+            </button>
+          )}
         </div>
         {errorMessage && (
           <p className="mt-3 text-sm text-status-error-text">{errorMessage}</p>

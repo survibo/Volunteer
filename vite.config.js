@@ -10,7 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "apple-touch-icon.png", "robots.txt"],
+      includeAssets: ["favicon.svg", "apple-touch-icon.png", "robots.txt", "pdf.worker.min.mjs"],
       manifest: {
         name: "Volunteer",
         short_name: "Volunteer",
