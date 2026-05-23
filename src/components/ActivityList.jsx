@@ -19,7 +19,7 @@ function categorize(activities) {
     const deadline = new Date(a.application_deadline);
     const ends = new Date(a.ends_at);
 
-    if (a.is_closed || ends <= now) {
+    if (ends <= now) {
       groups.completed.push(a);
     } else if (deadline > now) {
       groups.recruiting.push(a);

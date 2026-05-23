@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
+import DaumPostcodeEmbed from 'react-daum-postcode'
 import { createPendingProfile, getCurrentProfile, getHomePath } from '../../lib/auth'
 
 const emptyForm = {
@@ -7,6 +8,7 @@ const emptyForm = {
   phone: '',
   email: '',
   address: '',
+  address_detail: '',
   workplace_or_school: '',
   license_number: '',
 }
@@ -18,6 +20,17 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [showPostcode, setShowPostcode] = useState(false)
+
+  function handlePostcodeComplete(data) {
+    let fullAddress = data.address
+    if (data.addressType === 'R') {
+      const extra = [data.bname, data.buildingName].filter(Boolean).join(', ')
+      if (extra) fullAddress += ` (${extra})`
+    }
+    setForm((current) => ({ ...current, address: fullAddress }))
+    setShowPostcode(false)
+  }
 
   useEffect(() => {
     let mounted = true
@@ -81,6 +94,7 @@ export default function RegisterPage() {
       phone: form.phone.trim(),
       email: form.email.trim(),
       address: form.address.trim(),
+      address_detail: form.address_detail.trim() || '',
       workplace_or_school: form.workplace_or_school.trim(),
       license_number: form.license_number.trim() || null,
     }
@@ -146,12 +160,32 @@ export default function RegisterPage() {
           </label>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
             주소
+            <div className="flex gap-2">
+              <input
+                className="min-h-11 flex-1 rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+                name="address"
+                required
+                readOnly
+                value={form.address}
+                placeholder="주소 검색 버튼을 눌러주세요"
+              />
+              <button
+                className="min-h-11 cursor-pointer rounded-lg bg-action-default px-4 text-sm font-semibold text-white hover:bg-action-hover"
+                type="button"
+                onClick={() => setShowPostcode(true)}
+              >
+                검색
+              </button>
+            </div>
+          </label>
+          <label className="grid gap-2 text-xs font-semibold text-text-secondary">
+            상세주소
             <input
               className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
-              name="address"
-              required
-              value={form.address}
+              name="address_detail"
+              value={form.address_detail}
               onChange={updateField}
+              placeholder="건물명, 동/호수 등"
             />
           </label>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
@@ -179,10 +213,28 @@ export default function RegisterPage() {
             disabled={saving}
             type="submit"
           >
-            {saving ? '등록 중' : '준회원 등록'}
+            {saving ? '등록 중' : '회원 등록'}
           </button>
         </form>
       </section>
+
+      {showPostcode && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-12"
+          onClick={() => setShowPostcode(false)}
+        >
+          <div
+            className="w-full max-w-[500px] overflow-hidden rounded-xl bg-white shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DaumPostcodeEmbed
+              autoClose={false}
+              onComplete={handlePostcodeComplete}
+              style={{ width: '100%', height: 420 }}
+            />
+          </div>
+        </div>
+      )}
     </main>
   )
 }

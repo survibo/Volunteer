@@ -185,6 +185,10 @@ export default function AdminMemberDetailPage() {
           <dd className="m-0">{member.address}</dd>
         </div>
         <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
+          <dt className="font-medium text-text-secondary">상세주소</dt>
+          <dd className="m-0">{member.address_detail || '-'}</dd>
+        </div>
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">근무지/학교</dt>
           <dd className="m-0">{member.workplace_or_school || '-'}</dd>
         </div>
@@ -201,6 +205,13 @@ export default function AdminMemberDetailPage() {
           <dd className="m-0">{formatDate(member.approved_at)}</dd>
         </div>
       </dl>
+      <Link
+        className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover sm:w-auto"
+        to={`/admin/members/${id}/history`}
+      >
+        활동 내역
+      </Link>
+
       {member.role !== 'admin' && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-5 sm:p-6">
           <p className="mb-3 text-sm font-semibold text-red-700">관리자 권한</p>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { X } from 'lucide-react'
 import { createActivity, getActivityKind, updateActivity } from '../lib/activityApi'
-import { getVolunteerImageUrl, parseImagePaths, uploadActivityImages } from '../lib/storageApi'
+import { getImageUrl, parseImagePaths, uploadActivityImages } from '../lib/storageApi'
 import ImageWithFallback from './ImageWithFallback'
 
 function toDatetimeLocal(iso) {
@@ -14,6 +14,15 @@ function toDatetimeLocal(iso) {
   const hh = String(d.getHours()).padStart(2, '0')
   const mm = String(d.getMinutes()).padStart(2, '0')
   return `${y}-${m}-${day}T${hh}:${mm}`
+}
+
+function toDateOnly(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 const emptyForm = {
@@ -33,8 +42,8 @@ function buildInitial(initialData) {
     description: initialData.description ?? '',
     location: initialData.location ?? '',
     application_deadline: toDatetimeLocal(initialData.application_deadline),
-    starts_at: toDatetimeLocal(initialData.starts_at),
-    ends_at: toDatetimeLocal(initialData.ends_at),
+    starts_at: toDateOnly(initialData.starts_at),
+    ends_at: toDateOnly(initialData.ends_at),
     capacity: String(initialData.capacity ?? ''),
   }
 }
@@ -190,7 +199,7 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
                 <div key={`e-${i}`} className="group relative">
                   <ImageWithFallback
                     className="h-32 w-full rounded-lg object-cover"
-                    src={getVolunteerImageUrl(path)}
+                    src={getImageUrl(kind, path)}
                     alt=""
                   />
                   <button
@@ -263,7 +272,7 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary"
             name="starts_at"
-            type="datetime-local"
+            type="date"
             required
             value={form.starts_at}
             onChange={updateField}
@@ -275,7 +284,7 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary"
             name="ends_at"
-            type="datetime-local"
+            type="date"
             required
             value={form.ends_at}
             onChange={updateField}

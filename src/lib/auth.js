@@ -86,12 +86,21 @@ export async function createPendingProfile(payload) {
   }
 }
 
+export async function withdrawCurrentUser() {
+  const { error } = await supabase.rpc('withdraw_current_user')
+
+  if (error) {
+    throw error
+  }
+}
+
 export async function updateOwnProfile(payload) {
   const { error } = await supabase.rpc('update_own_profile', {
     new_name: payload.name,
     new_phone: payload.phone,
     new_email: payload.email,
     new_address: payload.address,
+    new_address_detail: payload.address_detail ?? '',
     new_workplace_or_school: payload.workplace_or_school,
     new_license_number: payload.license_number,
   })

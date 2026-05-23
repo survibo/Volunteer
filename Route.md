@@ -33,6 +33,7 @@
 /admin/members             # 회원 목록 (준회원 + 회원)
 /admin/members/pending     # 준회원 승인 대기 목록
 /admin/members/:id         # 회원 상세 + 승인 처리
+/admin/members/:id/history # 회원 활동 내역
 /admin/members/withdrawn   # 탈퇴 회원 명단 조회
 
 ### 봉사활동 관리

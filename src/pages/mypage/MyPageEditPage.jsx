@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
+import DaumPostcodeEmbed from 'react-daum-postcode'
 import { updateOwnProfile } from '../../lib/auth'
 
 export default function MyPageEditPage({ profile }) {
@@ -12,12 +13,25 @@ export default function MyPageEditPage({ profile }) {
     workplace_or_school: profile.workplace_or_school ?? '',
     license_number: profile.license_number ?? '',
   })
+  const [baseAddress, setBaseAddress] = useState('')
+  const [detailAddress, setDetailAddress] = useState('')
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [showPostcode, setShowPostcode] = useState(false)
 
   function updateField(event) {
     const { name, value } = event.target
     setForm((current) => ({ ...current, [name]: value }))
+  }
+
+  function handlePostcodeComplete(data) {
+    let fullAddress = data.address
+    if (data.addressType === 'R') {
+      const extra = [data.bname, data.buildingName].filter(Boolean).join(', ')
+      if (extra) fullAddress += ` (${extra})`
+    }
+    setBaseAddress(fullAddress)
+    setShowPostcode(false)
   }
 
   async function handleSubmit(event) {
@@ -28,7 +42,8 @@ export default function MyPageEditPage({ profile }) {
     const name = form.name.trim()
     const phone = form.phone.trim()
     const email = form.email.trim()
-    const address = form.address.trim()
+    const address = baseAddress || form.address
+    const address_detail = detailAddress.trim()
     const workplace_or_school = form.workplace_or_school.trim()
     const license_number = form.license_number.trim()
 
@@ -44,6 +59,7 @@ export default function MyPageEditPage({ profile }) {
         phone,
         email,
         address,
+        address_detail: address_detail || '',
         workplace_or_school,
         license_number: license_number || null,
       })
@@ -101,12 +117,29 @@ export default function MyPageEditPage({ profile }) {
         </label>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
           주소
+          <div className="flex gap-2">
+            <input
+              className="min-h-11 flex-1 rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+              readOnly
+              value={baseAddress || form.address}
+              placeholder="주소 검색 버튼을 눌러주세요"
+            />
+            <button
+              className="min-h-11 cursor-pointer rounded-lg bg-action-default px-4 text-sm font-semibold text-white hover:bg-action-hover"
+              type="button"
+              onClick={() => setShowPostcode(true)}
+            >
+              검색
+            </button>
+          </div>
+        </label>
+        <label className="grid gap-2 text-xs font-semibold text-text-secondary">
+          상세주소
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
-            name="address"
-            required
-            value={form.address}
-            onChange={updateField}
+            value={detailAddress}
+            onChange={(e) => setDetailAddress(e.target.value)}
+            placeholder="건물명, 동/호수 등"
           />
         </label>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
@@ -146,6 +179,23 @@ export default function MyPageEditPage({ profile }) {
           </Link>
         </div>
       </form>
+      {showPostcode && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-12"
+          onClick={() => setShowPostcode(false)}
+        >
+          <div
+            className="w-full max-w-[500px] overflow-hidden rounded-xl bg-white shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DaumPostcodeEmbed
+              autoClose={false}
+              onComplete={handlePostcodeComplete}
+              style={{ width: '100%', height: 420 }}
+            />
+          </div>
+        </div>
+      )}
     </section>
   )
 }

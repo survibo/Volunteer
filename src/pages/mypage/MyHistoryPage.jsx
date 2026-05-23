@@ -18,14 +18,22 @@ const statusStyles = {
   cancelled: 'bg-gray-50 text-gray-500 border-gray-200',
 }
 
-export default function MyHistoryPage({ profile }) {
+const kindFilters = [
+  { value: 'all', label: '전체' },
+  { value: 'volunteer', label: '봉사' },
+  { value: 'education', label: '교육' },
+]
+
+export default function MyHistoryPage({ profile, memberId, hideHeader }) {
   const [applications, setApplications] = useState([])
   const [loading, setLoading] = useState(true)
+  const [kindFilter, setKindFilter] = useState('all')
+  const userId = memberId ?? profile.id
 
   useEffect(() => {
     let mounted = true
     async function load() {
-      const data = await listMyApplications(profile.id)
+      const data = await listMyApplications(userId)
       if (mounted) {
         setApplications(data)
         setLoading(false)
@@ -33,30 +41,50 @@ export default function MyHistoryPage({ profile }) {
     }
     load()
     return () => { mounted = false }
-  }, [profile.id])
+  }, [userId])
 
   if (loading) return <TopLoadingBar />
 
   const now = new Date()
-  const current = applications.filter(
+  const filtered = kindFilter === 'all' ? applications : applications.filter((a) => a.kind === kindFilter)
+  const current = filtered.filter(
     (a) => a.status === 'pending' || (a.status === 'accepted' && new Date(a._activity.ends_at) > now)
   )
-  const completed = applications.filter(
+  const completed = filtered.filter(
     (a) => a.status === 'accepted' && new Date(a._activity.ends_at) <= now
   )
-  const other = applications.filter(
+  const other = filtered.filter(
     (a) => a.status === 'rejected'
   )
 
   return (
     <section className="grid gap-6">
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">
-          마이페이지
-        </p>
-        <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
-          활동 내역
-        </h1>
+      {!hideHeader && (
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">
+            마이페이지
+          </p>
+          <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
+            활동 내역
+          </h1>
+        </div>
+      )}
+
+      <div className="flex gap-1.5">
+        {kindFilters.map((f) => (
+          <button
+            key={f.value}
+            className={
+              kindFilter === f.value
+                ? 'rounded-lg bg-action-default px-3 py-2 text-sm font-semibold text-white'
+                : 'rounded-lg px-3 py-2 text-sm font-medium text-text-secondary hover:bg-surface-subtle'
+            }
+            type="button"
+            onClick={() => setKindFilter(f.value)}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       <Section title="신청 내역" count={current.length} emptyMessage="신청한 활동이 없습니다.">

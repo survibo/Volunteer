@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
-import { signOut } from "../../lib/auth";
+import { signOut, withdrawCurrentUser } from "../../lib/auth";
 
 function formatDate(iso) {
   if (!iso) return "-";
@@ -15,9 +15,18 @@ export default function MyPage({ profile }) {
   const navigate = useNavigate();
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
 
   async function handleSignOut() {
     setSigningOut(true);
+    await signOut();
+    navigate("/", { replace: true });
+  }
+
+  async function handleWithdraw() {
+    setWithdrawing(true);
+    await withdrawCurrentUser();
     await signOut();
     navigate("/", { replace: true });
   }
@@ -56,6 +65,10 @@ export default function MyPage({ profile }) {
         <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">주소</dt>
           <dd className="m-0">{profile.address}</dd>
+        </div>
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
+          <dt className="font-medium text-text-secondary">상세주소</dt>
+          <dd className="m-0">{profile.address_detail || "-"}</dd>
         </div>
         <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">근무지/학교</dt>
@@ -111,6 +124,54 @@ export default function MyPage({ profile }) {
                 disabled={signingOut}
                 type="button"
                 onClick={() => setShowSignOutModal(false)}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button
+        className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-transparent bg-status-error-text px-5 font-semibold text-white hover:opacity-80 sm:w-auto"
+        type="button"
+        onClick={() => setShowWithdrawModal(true)}
+      >
+        회원 탈퇴
+      </button>
+
+      {showWithdrawModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowWithdrawModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-surface-base p-5 shadow-lg sm:p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-status-error-text">
+              회원 탈퇴
+            </p>
+            <h2 className="text-lg font-bold text-text-primary">
+              정말 탈퇴하시겠어요?
+            </h2>
+            <p className="mt-2 text-sm text-text-secondary">
+              모든 개인 정보가 삭제되며 복구할 수 없습니다.
+            </p>
+            <div className="mt-5 flex gap-2.5">
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-status-error-text px-5 font-semibold text-white hover:opacity-80 disabled:cursor-progress disabled:opacity-65"
+                disabled={withdrawing}
+                type="button"
+                onClick={handleWithdraw}
+              >
+                {withdrawing ? "탈퇴 중" : "탈퇴"}
+              </button>
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"
+                disabled={withdrawing}
+                type="button"
+                onClick={() => setShowWithdrawModal(false)}
               >
                 닫기
               </button>

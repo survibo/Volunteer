@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router";
 
 const navItems = [
-  { to: "/volunteer", label: "봉사활동" },
+  { to: "/volunteer", label: "봉사" },
   { to: "/education", label: "교육" },
   { to: "/mylist", label: "활동 내역" },
   { to: "/mypage", label: "내 정보" },

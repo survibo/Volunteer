@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
-import { Pencil, Users } from 'lucide-react'
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router";
+import { Pencil, Users } from "lucide-react";
 import {
   applyToActivity,
   cancelOwnApplication,
@@ -8,111 +8,119 @@ import {
   getActivityConfig,
   getActivityKind,
   getMyApplication,
-} from '../../lib/activityApi'
-import { getVolunteerImageUrl, parseImagePaths } from '../../lib/storageApi'
-import ImageWithFallback from '../../components/ImageWithFallback'
-import TopLoadingBar from '../../components/TopLoadingBar'
-import { deadlineDdayText, formatDateTime } from '../../lib/dateUtils'
+} from "../../lib/activityApi";
+import { getImageUrl, parseImagePaths } from "../../lib/storageApi";
+import ImageWithFallback from "../../components/ImageWithFallback";
+import TopLoadingBar from "../../components/TopLoadingBar";
+import { deadlineDdayText, formatDateTime } from "../../lib/dateUtils";
 
 const statusLabel = {
-  pending: '신청 대기',
-  accepted: '수락됨',
-  rejected: '거절됨',
-  cancelled: '취소됨',
-}
+  pending: "신청 대기",
+  accepted: "수락됨",
+  rejected: "거절됨",
+  cancelled: "취소됨",
+};
 
 export default function ActivityDetailPage({ table, profile }) {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const isAdmin = profile?.role === 'admin'
-  const kind = getActivityKind(table)
-  const cfg = getActivityConfig(kind)
-  const [activity, setActivity] = useState(null)
-  const [application, setApplication] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
-  const [now, setNow] = useState(() => new Date())
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const isAdmin = profile?.role === "admin";
+  const kind = getActivityKind(table);
+  const cfg = getActivityConfig(kind);
+  const [activity, setActivity] = useState(null);
+  const [application, setApplication] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [now, setNow] = useState(() => new Date());
 
-  const deadlinePassed = activity ? new Date(activity.application_deadline) <= new Date() : true
-  const isClosed = activity?.is_closed ?? true
-  const canApply = activity && !deadlinePassed && !isClosed
-  const myPendingApp = application?.status === 'pending'
-  const myCancelledApp = application?.status === 'cancelled'
+  const deadlinePassed = activity
+    ? new Date(activity.application_deadline) <= new Date()
+    : true;
+  const canApply = activity && !deadlinePassed;
+  const myPendingApp = application?.status === "pending";
+  const myCancelledApp = application?.status === "cancelled";
 
   useEffect(() => {
-    let mounted = true
+    let mounted = true;
 
     async function load() {
       try {
-        const activityData = await getActivity(kind, id)
+        const activityData = await getActivity(kind, id);
 
-        if (!mounted) return
-        setActivity(activityData)
+        if (!mounted) return;
+        setActivity(activityData);
 
-        const appData = await getMyApplication(kind, id, profile.id)
+        const appData = await getMyApplication(kind, id, profile.id);
 
-        if (!mounted) return
-        setApplication(appData)
+        if (!mounted) return;
+        setApplication(appData);
       } catch (error) {
-        if (mounted) setErrorMessage(error.message)
+        if (mounted) setErrorMessage(error.message);
       } finally {
-        if (mounted) setLoading(false)
+        if (mounted) setLoading(false);
       }
     }
 
-    load()
-    return () => { mounted = false }
-  }, [id, kind, profile.id])
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [id, kind, profile.id]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setNow(new Date())
-    }, 1000)
+      setNow(new Date());
+    }, 1000);
 
     return () => {
-      window.clearInterval(timer)
-    }
-  }, [])
+      window.clearInterval(timer);
+    };
+  }, []);
 
   async function handleApply() {
-    setSaving(true)
-    setErrorMessage('')
+    setSaving(true);
+    setErrorMessage("");
 
     try {
-      const nextApplication = await applyToActivity(kind, id, profile.id, application)
-      setApplication(nextApplication)
+      const nextApplication = await applyToActivity(
+        kind,
+        id,
+        profile.id,
+        application
+      );
+      setApplication(nextApplication);
     } catch (error) {
-      setErrorMessage(error.message)
+      setErrorMessage(error.message);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
   async function handleCancel() {
-    setSaving(true)
-    setErrorMessage('')
+    setSaving(true);
+    setErrorMessage("");
 
     try {
-      await cancelOwnApplication(kind, application.id)
-      setApplication((prev) => ({ ...prev, status: 'cancelled' }))
+      await cancelOwnApplication(kind, application.id);
+      setApplication((prev) => ({ ...prev, status: "cancelled" }));
     } catch (error) {
-      setErrorMessage(error.message)
+      setErrorMessage(error.message);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
   if (loading) {
-    return <LoadingState />
+    return <LoadingState />;
   }
 
   if (errorMessage && !activity) {
-    return <ErrorState message={errorMessage} />
+    return <ErrorState message={errorMessage} />;
   }
 
   if (!activity) {
-    return <ErrorState message="존재하지 않는 게시물입니다." />
+    return <ErrorState message="존재하지 않는 게시물입니다." />;
   }
 
   return (
@@ -140,7 +148,9 @@ export default function ActivityDetailPage({ table, profile }) {
             <button
               className="inline-flex min-h-[38px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-border-default bg-white px-4 text-sm font-medium text-text-primary hover:bg-surface-subtle"
               type="button"
-              onClick={() => navigate(`${cfg.adminApplicationsPath}/${id}/applications`)}
+              onClick={() =>
+                navigate(`${cfg.adminApplicationsPath}/${id}/applications`)
+              }
             >
               <Users size={16} />
               신청 현황
@@ -148,12 +158,29 @@ export default function ActivityDetailPage({ table, profile }) {
           </div>
         )}
       </div>
-
+      {(() => {
+        const paths = parseImagePaths(activity.image_path);
+        if (paths.length === 0) return null;
+        return (
+          <div className="flex flex-col gap-3">
+            {paths.map((path, i) => (
+              <ImageWithFallback
+                key={i}
+                className="w-full rounded-xl border border-border-default"
+                src={getImageUrl(kind, path)}
+                alt={`${activity.title} ${i + 1}`}
+              />
+            ))}
+          </div>
+        );
+      })()}
       <dl className="grid gap-4 rounded-xl border border-border-default bg-surface-base p-6">
         {activity.description && (
           <div className="grid gap-1">
             <dt className="text-xs font-semibold text-text-secondary">설명</dt>
-            <dd className="m-0 whitespace-pre-wrap text-sm text-text-primary">{activity.description}</dd>
+            <dd className="m-0 whitespace-pre-wrap text-sm text-text-primary">
+              {activity.description}
+            </dd>
           </div>
         )}
         <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
@@ -162,14 +189,20 @@ export default function ActivityDetailPage({ table, profile }) {
         </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
           <dt className="text-xs font-semibold text-text-secondary">시작일</dt>
-          <dd className="m-0 text-sm text-text-primary">{formatDateTime(activity.starts_at)}</dd>
+          <dd className="m-0 text-sm text-text-primary">
+            {formatDateTime(activity.starts_at)}
+          </dd>
         </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
           <dt className="text-xs font-semibold text-text-secondary">종료일</dt>
-          <dd className="m-0 text-sm text-text-primary">{formatDateTime(activity.ends_at)}</dd>
+          <dd className="m-0 text-sm text-text-primary">
+            {formatDateTime(activity.ends_at)}
+          </dd>
         </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
-          <dt className="text-xs font-semibold text-text-secondary">신청 마감일</dt>
+          <dt className="text-xs font-semibold text-text-secondary">
+            신청 마감일
+          </dt>
           <dd className="m-0 flex flex-wrap items-center gap-2 text-sm text-text-primary">
             <span>{formatDateTime(activity.application_deadline)}</span>
             <span className="rounded-md bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
@@ -179,36 +212,25 @@ export default function ActivityDetailPage({ table, profile }) {
         </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
           <dt className="text-xs font-semibold text-text-secondary">정원</dt>
-          <dd className="m-0 text-sm text-text-primary">{activity.capacity}명</dd>
+          <dd className="m-0 text-sm text-text-primary">
+            {activity.capacity}명
+          </dd>
         </div>
       </dl>
 
-      {(() => {
-        const paths = parseImagePaths(activity.image_path)
-        if (paths.length === 0) return null
-        return (
-          <div className="flex flex-col gap-3">
-            {paths.map((path, i) => (
-              <ImageWithFallback
-                key={i}
-                className="w-full rounded-xl border border-border-default"
-                src={getVolunteerImageUrl(path)}
-                alt={`${activity.title} ${i + 1}`}
-              />
-            ))}
-          </div>
-        )
-      })()}
-
       {errorMessage && (
-        <p className="text-sm leading-normal text-status-error-text">{errorMessage}</p>
+        <p className="text-sm leading-normal text-status-error-text">
+          {errorMessage}
+        </p>
       )}
 
       {application && !myCancelledApp ? (
         <div className="rounded-xl border border-border-default bg-surface-base p-6">
           <p className="text-sm text-text-secondary">
-            신청 상태:{' '}
-            <span className="font-semibold text-text-primary">{statusLabel[application.status]}</span>
+            신청 상태:{" "}
+            <span className="font-semibold text-text-primary">
+              {statusLabel[application.status]}
+            </span>
           </p>
           {myPendingApp && !deadlinePassed && (
             <button
@@ -217,7 +239,7 @@ export default function ActivityDetailPage({ table, profile }) {
               type="button"
               onClick={handleCancel}
             >
-              {saving ? '취소 중' : '신청 취소'}
+              {saving ? "취소 중" : "신청 취소"}
             </button>
           )}
         </div>
@@ -229,15 +251,15 @@ export default function ActivityDetailPage({ table, profile }) {
           type="button"
           onClick={handleApply}
         >
-          {saving ? '신청 중' : '신청하기'}
+          {saving ? "신청 중" : "신청하기"}
         </button>
       ) : null}
     </section>
-  )
+  );
 }
 
 function LoadingState() {
-  return <TopLoadingBar />
+  return <TopLoadingBar />;
 }
 
 function ErrorState({ message }) {
@@ -247,5 +269,5 @@ function ErrorState({ message }) {
         <p className="text-sm text-status-error-text">{message}</p>
       </div>
     </section>
-  )
+  );
 }
