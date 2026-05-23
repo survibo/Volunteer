@@ -11,17 +11,8 @@ import {
 } from '../../lib/activityApi'
 import { getVolunteerImageUrl, parseImagePaths } from '../../lib/storageApi'
 import ImageWithFallback from '../../components/ImageWithFallback'
-
-function formatDate(iso) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${y}.${m}.${day} ${hh}:${mm}`
-}
+import TopLoadingBar from '../../components/TopLoadingBar'
+import { deadlineDdayText, formatDateTime } from '../../lib/dateUtils'
 
 const statusLabel = {
   pending: '신청 대기',
@@ -41,6 +32,7 @@ export default function ActivityDetailPage({ table, profile }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [now, setNow] = useState(() => new Date())
 
   const deadlinePassed = activity ? new Date(activity.application_deadline) <= new Date() : true
   const isClosed = activity?.is_closed ?? true
@@ -72,6 +64,16 @@ export default function ActivityDetailPage({ table, profile }) {
     load()
     return () => { mounted = false }
   }, [id, kind, profile.id])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNow(new Date())
+    }, 1000)
+
+    return () => {
+      window.clearInterval(timer)
+    }
+  }, [])
 
   async function handleApply() {
     setSaving(true)
@@ -147,30 +149,35 @@ export default function ActivityDetailPage({ table, profile }) {
         )}
       </div>
 
-      <dl className="grid gap-3 rounded-xl border border-border-default bg-surface-base p-6">
+      <dl className="grid gap-4 rounded-xl border border-border-default bg-surface-base p-6">
         {activity.description && (
           <div className="grid gap-1">
             <dt className="text-xs font-semibold text-text-secondary">설명</dt>
             <dd className="m-0 whitespace-pre-wrap text-sm text-text-primary">{activity.description}</dd>
           </div>
         )}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
           <dt className="text-xs font-semibold text-text-secondary">장소</dt>
           <dd className="m-0 text-sm text-text-primary">{activity.location}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
           <dt className="text-xs font-semibold text-text-secondary">시작일</dt>
-          <dd className="m-0 text-sm text-text-primary">{formatDate(activity.starts_at)}</dd>
+          <dd className="m-0 text-sm text-text-primary">{formatDateTime(activity.starts_at)}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
           <dt className="text-xs font-semibold text-text-secondary">종료일</dt>
-          <dd className="m-0 text-sm text-text-primary">{formatDate(activity.ends_at)}</dd>
+          <dd className="m-0 text-sm text-text-primary">{formatDateTime(activity.ends_at)}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
           <dt className="text-xs font-semibold text-text-secondary">신청 마감일</dt>
-          <dd className="m-0 text-sm text-text-primary">{formatDate(activity.application_deadline)}</dd>
+          <dd className="m-0 flex flex-wrap items-center gap-2 text-sm text-text-primary">
+            <span>{formatDateTime(activity.application_deadline)}</span>
+            <span className="rounded-md bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+              {deadlineDdayText(activity.application_deadline, now)}
+            </span>
+          </dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
           <dt className="text-xs font-semibold text-text-secondary">정원</dt>
           <dd className="m-0 text-sm text-text-primary">{activity.capacity}명</dd>
         </div>
@@ -230,13 +237,7 @@ export default function ActivityDetailPage({ table, profile }) {
 }
 
 function LoadingState() {
-  return (
-    <section className="grid gap-6">
-      <div className="rounded-xl border border-border-default bg-surface-base p-6">
-        <p className="text-sm text-text-secondary">불러오는 중입니다.</p>
-      </div>
-    </section>
-  )
+  return <TopLoadingBar />
 }
 
 function ErrorState({ message }) {

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import { Trash2 } from 'lucide-react'
 import { deleteActivity, getActivity, getActivityKind } from '../../lib/activityApi'
 import ActivityForm from '../../components/ActivityForm'
+import TopLoadingBar from '../../components/TopLoadingBar'
 
 export default function AdminActivityEditPage({ table, redirectTo, sectionLabel, pageTitle, profile }) {
   const { id } = useParams()
@@ -52,13 +53,7 @@ export default function AdminActivityEditPage({ table, redirectTo, sectionLabel,
   }
 
   if (loading) {
-    return (
-      <section className="grid gap-6">
-        <div className="rounded-xl border border-border-default bg-surface-base p-6">
-          <p className="text-sm text-text-secondary">불러오는 중입니다.</p>
-        </div>
-      </section>
-    )
+    return <TopLoadingBar />
   }
 
   if (errorMessage && !initialData) {

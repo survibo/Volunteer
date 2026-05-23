@@ -1,32 +1,34 @@
-import { Link, useNavigate } from 'react-router'
-import { useState } from 'react'
-import { signOut } from '../../lib/auth'
+import { Link, useNavigate } from "react-router";
+import { useState } from "react";
+import { signOut } from "../../lib/auth";
 
 function formatDate(iso) {
-  if (!iso) return '-'
-  const d = new Date(iso)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}.${m}.${day}`
+  if (!iso) return "-";
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}.${m}.${day}`;
 }
 
 export default function MyPage({ profile }) {
-  const navigate = useNavigate()
-  const [showSignOutModal, setShowSignOutModal] = useState(false)
-  const [signingOut, setSigningOut] = useState(false)
+  const navigate = useNavigate();
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   async function handleSignOut() {
-    setSigningOut(true)
-    await signOut()
-    navigate('/', { replace: true })
+    setSigningOut(true);
+    await signOut();
+    navigate("/", { replace: true });
   }
 
   return (
-    <section className="grid gap-6">
+    <section className="grid gap-5 sm:gap-6">
       <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">마이페이지</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">
+            마이페이지
+          </p>
           <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
             {profile.name}
           </h1>
@@ -38,37 +40,37 @@ export default function MyPage({ profile }) {
           프로필 수정
         </Link>
       </div>
-      <dl className="m-0 grid gap-3 rounded-xl border border-border-default bg-surface-base p-6">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+      <dl className="m-0 grid gap-4 rounded-xl border border-border-default bg-surface-base p-5 sm:p-6">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">회원번호</dt>
-          <dd className="m-0">{profile.member_number ?? '미부여'}</dd>
+          <dd className="m-0">{profile.member_number ?? "미부여"}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">연락처</dt>
           <dd className="m-0">{profile.phone}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">이메일</dt>
           <dd className="m-0">{profile.email}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">주소</dt>
           <dd className="m-0">{profile.address}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">근무지/학교</dt>
-          <dd className="m-0">{profile.workplace_or_school || '-'}</dd>
+          <dd className="m-0">{profile.workplace_or_school || "-"}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">면허번호</dt>
-          <dd className="m-0">{profile.license_number || '-'}</dd>
+          <dd className="m-0">{profile.license_number || "-"}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">가입일</dt>
           <dd className="m-0">{formatDate(profile.created_at)}</dd>
         </div>
       </dl>
-      <div className="border-t border-border-default pt-6">
+      <div className="border-t border-border-default pt-5 sm:pt-6">
         <button
           className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-red-200 bg-red-50 px-5 font-semibold text-red-600 hover:border-red-300 hover:bg-red-100 sm:w-auto"
           type="button"
@@ -83,13 +85,15 @@ export default function MyPage({ profile }) {
           onClick={() => setShowSignOutModal(false)}
         >
           <div
-            className="w-full max-w-sm rounded-xl bg-surface-base p-6 shadow-lg"
+            className="w-full max-w-sm rounded-xl bg-surface-base p-5 shadow-lg sm:p-6"
             onClick={(event) => event.stopPropagation()}
           >
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-status-error-text">
               로그아웃
             </p>
-            <h2 className="text-lg font-bold text-text-primary">로그아웃할까요?</h2>
+            <h2 className="text-lg font-bold text-text-primary">
+              로그아웃할까요?
+            </h2>
             <p className="mt-2 text-sm text-text-secondary">
               현재 계정에서 로그아웃하고 로그인 화면으로 이동합니다.
             </p>
@@ -100,7 +104,7 @@ export default function MyPage({ profile }) {
                 type="button"
                 onClick={handleSignOut}
               >
-                {signingOut ? '로그아웃 중' : '로그아웃'}
+                {signingOut ? "로그아웃 중" : "로그아웃"}
               </button>
               <button
                 className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"
@@ -115,5 +119,5 @@ export default function MyPage({ profile }) {
         </div>
       )}
     </section>
-  )
+  );
 }

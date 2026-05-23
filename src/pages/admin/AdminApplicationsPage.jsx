@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
-import { CheckCheck, Download, X } from "lucide-react";
+import { CheckCheck, Download, Search, X } from "lucide-react";
+import TopLoadingBar from "../../components/TopLoadingBar";
 import {
   decideApplications,
   getActivityMaybe,
@@ -22,8 +23,15 @@ const exportStatusOptions = [
   { value: "pending", label: "대기중" },
 ];
 
+const filterStatusOptions = [
+  { value: "all", label: "전체" },
+  { value: "pending", label: "대기중" },
+  { value: "accepted", label: "수락" },
+  { value: "rejected", label: "거절" },
+];
+
 function applicantMemberLabel(user) {
-  if (user?.role === "member" && user.member_number) {
+  if (user?.member_number) {
     return user.member_number;
   }
 
@@ -40,18 +48,18 @@ function applicantMemberBadgeClass(user) {
 
 function statusBadgeClass(status) {
   if (status === "accepted") {
-    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100";
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
   if (status === "rejected") {
-    return "bg-red-50 text-red-700 ring-1 ring-red-100";
+    return "border-red-200 bg-red-50 text-red-700";
   }
 
   if (status === "cancelled") {
-    return "bg-slate-100 text-slate-600 ring-1 ring-slate-200";
+    return "border-slate-200 bg-slate-100 text-slate-600";
   }
 
-  return "bg-amber-50 text-amber-700 ring-1 ring-amber-100";
+  return "border-amber-200 bg-amber-50 text-amber-700";
 }
 
 function formatExportDate(iso) {
@@ -78,6 +86,15 @@ function formatFilenameDate(date) {
   return `${y}${m}${d}_${hh}${mm}`;
 }
 
+function SummaryItem({ label, value }) {
+  return (
+    <div className="rounded-xl border border-border-default bg-surface-base p-4">
+      <p className="text-xs font-semibold text-text-secondary">{label}</p>
+      <p className="mt-1 text-2xl font-bold text-text-primary">{value}</p>
+    </div>
+  );
+}
+
 export default function AdminApplicationsPage({ table }) {
   const { id } = useParams();
   const kind = getActivityKind(table);
@@ -90,6 +107,8 @@ export default function AdminApplicationsPage({ table }) {
   const [cancelConfirm, setCancelConfirm] = useState(null);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportStatuses, setExportStatuses] = useState(() => new Set(["accepted", "rejected", "pending"]));
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -121,11 +140,33 @@ export default function AdminApplicationsPage({ table }) {
     };
   }, [id, kind]);
 
-  const cancellableIds = applications
-    .map((a) => a.id);
-  const allSelected =
-    cancellableIds.length > 0 &&
-    cancellableIds.every((aid) => selectedIds.has(aid));
+  const acceptedCount = applications.filter((app) => app.status === "accepted").length;
+  const statusFilteredCount = statusFilter === "all"
+    ? applications.length
+    : applications.filter((app) => app.status === statusFilter).length;
+  const filteredApplications = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+
+    return applications.filter((app) => {
+      if (statusFilter !== "all" && app.status !== statusFilter) {
+        return false;
+      }
+
+      if (!keyword) {
+        return true;
+      }
+
+      return [
+        app.users?.name,
+        applicantMemberLabel(app.users),
+        app.users?.phone,
+        app.users?.email,
+        app.users?.workplace_or_school,
+      ]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(keyword));
+    });
+  }, [applications, query, statusFilter]);
 
   function toggleSelect(appId) {
     setSelectedIds((prev) => {
@@ -137,14 +178,6 @@ export default function AdminApplicationsPage({ table }) {
       }
       return next;
     });
-  }
-
-  function toggleSelectAll() {
-    if (allSelected) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(cancellableIds));
-    }
   }
 
   async function handleDecide(applicationIds, nextStatus) {
@@ -192,21 +225,27 @@ export default function AdminApplicationsPage({ table }) {
   }
 
   async function exportApplications() {
-    const XLSX = await import("xlsx");
-    const selectedStatuses = [...exportStatuses];
-    const rows = applications
-      .filter((app) => selectedStatuses.includes(app.status))
-      .map((app) => ({
-        이름: app.users?.name ?? "",
-        회원번호: applicantMemberLabel(app.users),
-        소속: app.users?.workplace_or_school ?? "",
-        전화번호: app.users?.phone ?? "",
-        이메일: app.users?.email ?? "",
-        "신청 일시": formatExportDate(app.created_at),
-      }));
+  const XLSX = await import("xlsx");
+  const selectedStatuses = [...exportStatuses];
+  const rows = applications
+    .filter((app) => selectedStatuses.includes(app.status))
+    .map((app) => [
+      app.users?.name ?? "",
+      applicantMemberLabel(app.users),
+      app.users?.workplace_or_school ?? "",
+      app.users?.phone ?? "",
+      app.users?.email ?? "",
+      formatExportDate(app.created_at),
+    ]);
 
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    worksheet["!cols"] = [
+  const worksheet = XLSX.utils.aoa_to_sheet([
+    [`게시물: ${activity.title}`],
+    [],
+    ["이름", "회원번호", "소속", "전화번호", "이메일", "신청 일시"],
+    ...rows,
+  ]);
+  worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+  worksheet["!cols"] = [
       { wch: 14 },
       { wch: 12 },
       { wch: 24 },
@@ -222,13 +261,7 @@ export default function AdminApplicationsPage({ table }) {
   }
 
   if (loading) {
-    return (
-      <section className="grid gap-6">
-        <div className="rounded-xl border border-border-default bg-surface-base p-6">
-          <p className="text-sm text-text-secondary">불러오는 중입니다.</p>
-        </div>
-      </section>
-    );
+    return <TopLoadingBar />;
   }
 
   if (!activity) {
@@ -256,6 +289,11 @@ export default function AdminApplicationsPage({ table }) {
           신청 현황
         </h1>
         <p className="mt-2 text-sm text-text-secondary">{activity.title}</p>
+        <div className="mt-4 grid grid-cols-3 gap-2 sm:max-w-lg sm:gap-3">
+          <SummaryItem label="모집 인원" value={`${activity.capacity}명`} />
+          <SummaryItem label="총 신청" value={`${applications.length}명`} />
+          <SummaryItem label="수락됨" value={`${acceptedCount}명`} />
+        </div>
         <button
           className="mt-4 inline-flex min-h-[38px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-border-default bg-white px-4 text-sm font-semibold text-text-primary hover:bg-surface-subtle"
           type="button"
@@ -267,11 +305,12 @@ export default function AdminApplicationsPage({ table }) {
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="sticky top-0 z-10 -mx-4 flex items-center gap-2.5 border-b border-border-default bg-surface-base px-4 py-3 md:-mx-6 md:px-6">
-          <span className="text-sm font-medium text-text-secondary">
-            {selectedIds.size}명 선택
-          </span>
-          <div className="ml-auto flex gap-2.5">
+        <div className="pointer-events-none fixed left-0 right-0 top-24 z-30 px-4 md:top-16 md:px-6">
+          <div className="pointer-events-auto mx-auto flex max-w-[1040px] flex-wrap items-center gap-2.5 rounded-xl border border-border-default bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
+            <span className="text-sm font-semibold text-text-primary">
+              {selectedIds.size}명 선택
+            </span>
+            <div className="ml-auto flex flex-wrap gap-2">
             <button
               className="inline-flex min-h-[36px] cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-action-default px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
               disabled={processing === "batch"}
@@ -298,6 +337,7 @@ export default function AdminApplicationsPage({ table }) {
             >
               신청 취소
             </button>
+            </div>
           </div>
         </div>
       )}
@@ -308,16 +348,42 @@ export default function AdminApplicationsPage({ table }) {
         </div>
       ) : (
         <div className="grid gap-3">
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border-default bg-surface-base px-5 py-3 text-sm font-medium text-text-secondary hover:bg-surface-subtle">
-            <input
-              className="h-4 w-4"
-              type="checkbox"
-              checked={allSelected}
-              onChange={toggleSelectAll}
-            />
-            전체 선택
-          </label>
-          {applications.map((app) => {
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <label className="relative block">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary"
+                size={18}
+              />
+              <input
+                className="min-h-11 w-full rounded-lg border border-border-default bg-white pl-10 pr-3 text-text-primary placeholder:text-text-tertiary"
+                placeholder="이름, 회원번호, 전화번호..."
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
+            <div className="flex items-center justify-end gap-2">
+              <select
+                className="min-h-11 w-28 rounded-lg border border-border-default bg-white px-3 text-sm font-medium text-text-primary"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                {filterStatusOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <span className="min-w-14 text-right text-sm font-semibold text-text-secondary">
+                {statusFilteredCount}명
+              </span>
+            </div>
+          </div>
+          {filteredApplications.length === 0 ? (
+            <div className="rounded-xl border border-border-default bg-surface-base p-6">
+              <strong>검색 결과가 없습니다.</strong>
+            </div>
+          ) : null}
+          {filteredApplications.map((app) => {
             return (
               <div
                 key={app.id}
@@ -327,7 +393,8 @@ export default function AdminApplicationsPage({ table }) {
                     : "border-border-default"
                 }`}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="grid gap-4">
+                  <div className="flex items-start justify-between gap-3">
                   <label className="flex cursor-pointer items-center gap-3">
                     <input
                       className="h-4 w-4"
@@ -342,9 +409,6 @@ export default function AdminApplicationsPage({ table }) {
                         </p>
                         <span className={`rounded-lg px-2 py-1 text-xs font-semibold ${applicantMemberBadgeClass(app.users)}`}>
                           {applicantMemberLabel(app.users)}
-                        </span>
-                        <span className={`rounded-lg px-2 py-1 text-xs font-semibold ${statusBadgeClass(app.status)}`}>
-                          {statusLabel[app.status]}
                         </span>
                       </div>
                       <dl className="grid gap-1 text-sm text-text-secondary sm:grid-cols-2">
@@ -366,7 +430,11 @@ export default function AdminApplicationsPage({ table }) {
                       </dl>
                     </div>
                   </label>
-                  <div className="flex shrink-0 items-center gap-2.5">
+                  <span className={`shrink-0 rounded-xl border px-3 py-1.5 text-sm font-bold ${statusBadgeClass(app.status)}`}>
+                    {statusLabel[app.status]}
+                  </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2.5 pl-7">
                     <button
                       className="min-h-[36px] cursor-pointer rounded-lg bg-action-default px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
                       disabled={processing === app.id}

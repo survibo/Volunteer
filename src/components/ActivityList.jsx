@@ -2,30 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Pencil, Users } from "lucide-react";
 import { getActivityKind, listActivities, listApplicantCounts } from "../lib/activityApi";
-
-function formatDate(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${y}.${m}.${day} ${hh}:${mm}`;
-}
-
-function remainingText(deadline) {
-  const diff = new Date(deadline) - new Date()
-  if (diff <= 0) return '마감됨'
-
-  const days = Math.floor(diff / 86400000)
-  const hours = Math.floor((diff % 86400000) / 3600000)
-  const minutes = Math.floor((diff % 3600000) / 60000)
-
-  if (days > 0) return `D-${days}`
-  if (hours > 0) return `${hours}시간 ${minutes}분 남음`
-  return `${minutes}분 남음`
-}
+import { deadlineDdayText, formatDateTime } from "../lib/dateUtils";
+import TopLoadingBar from "./TopLoadingBar";
 
 const filterOptions = [
   { value: "recruiting", label: "현재 모집중" },
@@ -59,7 +37,7 @@ function categorize(activities) {
   return groups;
 }
 
-function ActivityCard({ activity, detailPath, adminEditBasePath, isAdmin }) {
+function ActivityCard({ activity, detailPath, adminEditBasePath, isAdmin, now }) {
   const navigate = useNavigate();
 
   return (
@@ -69,8 +47,12 @@ function ActivityCard({ activity, detailPath, adminEditBasePath, isAdmin }) {
     >
       <h3 className="text-lg font-bold text-text-primary">{activity.title}</h3>
       <div className="mt-3 grid gap-1.5 text-sm text-text-secondary">
-        <p>마감: {formatDate(activity.application_deadline)}</p>
-        <p className="text-status-error-text">{remainingText(activity.application_deadline)}</p>
+        <p className="flex flex-wrap items-center gap-2">
+          <span>마감: {formatDateTime(activity.application_deadline)}</span>
+          <span className="rounded-md bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+            {deadlineDdayText(activity.application_deadline, now)}
+          </span>
+        </p>
         <p>정원 {activity.capacity}명</p>
         {isAdmin && activity._applicantCount !== undefined && (
           <p className="flex items-center gap-1">
@@ -109,6 +91,7 @@ export default function ActivityList({
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("recruiting");
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     let mounted = true;
@@ -132,6 +115,16 @@ export default function ActivityList({
     };
   }, [kind, isAdmin]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, []);
+
   const groups = categorize(activities);
   const activeItems = groups[filter];
   const hasAny = activeItems.length > 0;
@@ -144,9 +137,7 @@ export default function ActivityList({
         </h1>
 
         {loading ? (
-          <div className="rounded-xl border border-border-default bg-surface-base p-6">
-            <p className="text-sm text-text-secondary">불러오는 중입니다.</p>
-          </div>
+          <TopLoadingBar />
         ) : (
           <div className="grid gap-6">
             <div className="flex justify-end">
@@ -165,7 +156,7 @@ export default function ActivityList({
             {hasAny ? (
               <div className="grid gap-3">
                 {activeItems.map((activity) => (
-                  <ActivityCard key={activity.id} activity={activity} detailPath={detailBasePath} adminEditBasePath={isAdmin ? `/admin${detailBasePath}` : null} isAdmin={isAdmin} />
+                  <ActivityCard key={activity.id} activity={activity} detailPath={detailBasePath} adminEditBasePath={isAdmin ? `/admin${detailBasePath}` : null} isAdmin={isAdmin} now={now} />
                 ))}
               </div>
             ) : (

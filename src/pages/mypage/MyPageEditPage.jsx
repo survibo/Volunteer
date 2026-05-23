@@ -56,7 +56,7 @@ export default function MyPageEditPage({ profile }) {
   }
 
   return (
-    <section className="grid gap-6">
+    <section className="grid gap-5 sm:gap-6">
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">마이페이지</p>
         <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
@@ -65,7 +65,7 @@ export default function MyPageEditPage({ profile }) {
       </div>
 
       <form
-        className="grid gap-4 rounded-xl border border-border-default bg-surface-base p-6"
+        className="grid gap-3.5 rounded-xl border border-border-default bg-surface-base p-5 sm:gap-4 sm:p-6"
         onSubmit={handleSubmit}
       >
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">

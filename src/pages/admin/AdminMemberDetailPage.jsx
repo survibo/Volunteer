@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
+import TopLoadingBar from '../../components/TopLoadingBar'
 import { approveMember, cancelMemberApproval, getMember, grantAdmin } from '../../lib/memberApi'
 
 function roleLabel(role) {
@@ -105,19 +106,13 @@ export default function AdminMemberDetailPage() {
   }
 
   if (loading) {
-    return (
-      <section className="grid gap-6">
-        <div className="rounded-xl border border-border-default bg-surface-base p-6">
-          <p className="text-sm text-text-secondary">회원 정보를 불러오는 중입니다.</p>
-        </div>
-      </section>
-    )
+    return <TopLoadingBar />
   }
 
   if (errorMessage || !member) {
     return (
-      <section className="grid gap-6">
-        <div className="rounded-xl border border-border-default bg-surface-base p-6">
+      <section className="grid gap-5 sm:gap-6">
+        <div className="rounded-xl border border-border-default bg-surface-base p-5 sm:p-6">
           <p className="text-sm text-status-error-text">{errorMessage || '회원을 찾을 수 없습니다.'}</p>
         </div>
       </section>
@@ -129,7 +124,7 @@ export default function AdminMemberDetailPage() {
     : null
 
   return (
-    <section className="grid gap-6">
+    <section className="grid gap-5 sm:gap-6">
       <div>
         <Link
           className="mb-2 inline-block text-xs font-semibold uppercase tracking-wider text-action-default hover:underline"
@@ -172,42 +167,42 @@ export default function AdminMemberDetailPage() {
         )}
       </div>
 
-      <dl className="m-0 grid gap-3 rounded-xl border border-border-default bg-surface-base p-6">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+      <dl className="m-0 grid gap-4 rounded-xl border border-border-default bg-surface-base p-5 sm:p-6">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">회원번호</dt>
           <dd className="m-0">{member.member_number ?? '미부여'}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">연락처</dt>
           <dd className="m-0">{member.phone}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">이메일</dt>
           <dd className="m-0 break-all">{member.email}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">주소</dt>
           <dd className="m-0">{member.address}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">근무지/학교</dt>
           <dd className="m-0">{member.workplace_or_school || '-'}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">면허번호</dt>
           <dd className="m-0">{member.license_number || '-'}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">가입일</dt>
           <dd className="m-0">{formatDate(member.created_at)}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">승인일</dt>
           <dd className="m-0">{formatDate(member.approved_at)}</dd>
         </div>
       </dl>
       {member.role !== 'admin' && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-5 sm:p-6">
           <p className="mb-3 text-sm font-semibold text-red-700">관리자 권한</p>
           <button
             className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl bg-status-error-text px-5 font-semibold text-white hover:opacity-80 disabled:cursor-progress disabled:opacity-65 sm:w-auto"
@@ -225,7 +220,7 @@ export default function AdminMemberDetailPage() {
           onClick={() => setConfirmAction(null)}
         >
           <div
-            className="w-full max-w-sm rounded-xl bg-surface-base p-6 shadow-lg"
+            className="w-full max-w-sm rounded-xl bg-surface-base p-5 shadow-lg sm:p-6"
             onClick={(event) => event.stopPropagation()}
           >
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">

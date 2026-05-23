@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
 import AppFrame from './components/AppFrame'
+import TopLoadingBar from './components/TopLoadingBar'
 import { getCurrentProfile, getHomePath } from './lib/auth'
 import ActivityDetailPage from './pages/activity/ActivityDetailPage'
 import AdminPage from './pages/admin/AdminPage'
@@ -111,13 +112,7 @@ function ProtectedRoute({ adminOnly = false, children }) {
 }
 
 function LoadingScreen() {
-  return (
-    <main className="flex min-h-full flex-col overflow-y-auto px-4 py-8 md:p-6">
-      <section className="m-auto w-full max-w-[380px] rounded-xl border border-border-default bg-surface-base p-6 md:p-8">
-        <p className="text-sm text-text-secondary">불러오는 중입니다.</p>
-      </section>
-    </main>
-  )
+  return <TopLoadingBar />
 }
 
 function ErrorScreen({ message }) {
