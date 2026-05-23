@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router'
-import { X } from 'lucide-react'
+import { GripVertical, X } from 'lucide-react'
 import { createActivity, getActivityKind, updateActivity } from '../lib/activityApi'
 import { getImageUrl, parseImagePaths, uploadActivityImages } from '../lib/storageApi'
 import ImageWithFallback from './ImageWithFallback'
@@ -53,8 +53,9 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
   const kind = getActivityKind(table)
   const isEdit = !!initialData
   const [form, setForm] = useState(() => buildInitial(initialData))
-  const [existingPaths, setExistingPaths] = useState(() => parseImagePaths(initialData?.image_path))
-  const [newFiles, setNewFiles] = useState([])
+  const [images, setImages] = useState(() => {
+    return parseImagePaths(initialData?.image_path).map((path) => ({ kind: 'existing', path }))
+  })
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -63,21 +64,65 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
     setForm((prev) => ({ ...prev, [name]: value }))
   }
 
+  const dragIndex = useRef(null)
+
   function handleImageSelect(e) {
     const files = Array.from(e.target.files ?? [])
-    setNewFiles((prev) => [...prev, ...files.map((f) => ({ file: f, preview: URL.createObjectURL(f) }))])
+    files.sort((a, b) => a.lastModified - b.lastModified)
+    setImages((prev) => [
+      ...prev,
+      ...files.map((f) => ({ kind: 'new', file: f, preview: URL.createObjectURL(f) })),
+    ])
     e.target.value = ''
   }
 
-  function removeExisting(index) {
-    setExistingPaths((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  function removeNewFile(index) {
-    setNewFiles((prev) => {
-      URL.revokeObjectURL(prev[index].preview)
+  function removeImage(index) {
+    setImages((prev) => {
+      const item = prev[index]
+      if (item.kind === 'new') URL.revokeObjectURL(item.preview)
       return prev.filter((_, i) => i !== index)
     })
+  }
+
+  function moveImage(from, to) {
+    if (from === to) return
+    setImages((prev) => {
+      const next = [...prev]
+      const [moved] = next.splice(from, 1)
+      next.splice(to, 0, moved)
+      return next
+    })
+  }
+
+  function handleDragStart(e, index) {
+    dragIndex.current = index
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  function handleDrop(e, toIndex) {
+    e.preventDefault()
+    const from = dragIndex.current
+    dragIndex.current = null
+    if (from != null && from !== toIndex) {
+      moveImage(from, toIndex)
+    }
+  }
+
+  function handleTouchStart(index) {
+    dragIndex.current = index
+  }
+
+  function handleTouchEnd(toIndex) {
+    const from = dragIndex.current
+    dragIndex.current = null
+    if (from != null && from !== toIndex) {
+      moveImage(from, toIndex)
+    }
   }
 
   async function handleSubmit(e) {
@@ -101,11 +146,13 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
       return
     }
 
-    let allPaths = [...existingPaths]
+    const existingItems = images.filter((item) => item.kind === 'existing')
+    const newItems = images.filter((item) => item.kind === 'new')
+    let allPaths = existingItems.map((item) => item.path)
 
-    if (newFiles.length > 0) {
+    if (newItems.length > 0) {
       try {
-        const newPaths = await uploadActivityImages(kind, newFiles.map(({ file }) => file))
+        const newPaths = await uploadActivityImages(kind, newItems.map((item) => item.file))
         allPaths = [...allPaths, ...newPaths]
       } catch (error) {
         setSaving(false)
@@ -144,7 +191,9 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
       return
     }
 
-    newFiles.forEach((f) => URL.revokeObjectURL(f.preview))
+    images.forEach((item) => {
+      if (item.kind === 'new') URL.revokeObjectURL(item.preview)
+    })
     navigate(redirectTo, { replace: true })
   }
 
@@ -193,35 +242,39 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
             multiple
             onChange={handleImageSelect}
           />
-          {existingPaths.length > 0 || newFiles.length > 0 ? (
+          {images.length > 0 ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-              {existingPaths.map((path, i) => (
-                <div key={`e-${i}`} className="group relative">
-                  <ImageWithFallback
-                    className="h-32 w-full rounded-lg object-cover"
-                    src={getImageUrl(kind, path)}
-                    alt=""
-                  />
+              {images.map((item, i) => (
+                <div
+                  key={item.kind === 'existing' ? `e-${item.path}` : `n-${i}`}
+                  className="group relative cursor-grab active:cursor-grabbing"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, i)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, i)}
+                  onTouchStart={() => handleTouchStart(i)}
+                  onTouchEnd={() => handleTouchEnd(i)}
+                >
+                  <div className="absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded bg-black/40 text-white">
+                    <GripVertical size={14} />
+                  </div>
+                  {item.kind === 'existing' ? (
+                    <ImageWithFallback
+                      className="h-32 w-full rounded-lg object-cover"
+                      src={getImageUrl(kind, item.path)}
+                      alt=""
+                    />
+                  ) : (
+                    <img
+                      className="h-32 w-full rounded-lg object-cover"
+                      src={item.preview}
+                      alt=""
+                    />
+                  )}
                   <button
                     className="absolute -right-2 -top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-status-error-text text-white hover:opacity-80"
                     type="button"
-                    onClick={() => removeExisting(i)}
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-              {newFiles.map((f, i) => (
-                <div key={`n-${i}`} className="group relative">
-                  <img
-                    className="h-32 w-full rounded-lg object-cover"
-                    src={f.preview}
-                    alt=""
-                  />
-                  <button
-                    className="absolute -right-2 -top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-status-error-text text-white hover:opacity-80"
-                    type="button"
-                    onClick={() => removeNewFile(i)}
+                    onClick={() => removeImage(i)}
                   >
                     <X size={14} />
                   </button>

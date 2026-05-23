@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { Pencil, Users } from "lucide-react";
+import { Link as LinkIcon, Pencil, Users } from "lucide-react";
 import {
   applyToActivity,
   cancelOwnApplication,
@@ -33,6 +33,8 @@ export default function ActivityDetailPage({ table, profile }) {
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [now, setNow] = useState(() => new Date());
+
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const deadlinePassed = activity
     ? new Date(activity.application_deadline) <= new Date()
@@ -154,6 +156,18 @@ export default function ActivityDetailPage({ table, profile }) {
             >
               <Users size={16} />
               신청 현황
+            </button>
+            <button
+              className="inline-flex min-h-[38px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-border-default bg-white px-4 text-sm font-medium text-text-primary hover:bg-surface-subtle"
+              type="button"
+              onClick={async () => {
+                await navigator.clipboard.writeText(window.location.href);
+                setLinkCopied(true);
+                setTimeout(() => setLinkCopied(false), 2000);
+              }}
+            >
+              <LinkIcon size={16} />
+              {linkCopied ? "복사됨" : "링크 복사"}
             </button>
           </div>
         )}

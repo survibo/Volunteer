@@ -9,6 +9,7 @@ const filterOptions = [
   { value: "recruiting", label: "모집중" },
   { value: "ongoing", label: "진행중" },
   { value: "completed", label: "종료" },
+  { value: "all", label: "전체" },
 ];
 
 function categorize(activities) {
@@ -131,7 +132,14 @@ export default function ActivityList({
   }, []);
 
   const groups = categorize(activities);
-  const activeItems = groups[filter];
+
+  let activeItems;
+  if (filter === "all") {
+    activeItems = [...groups.recruiting, ...groups.ongoing, ...groups.completed];
+  } else {
+    activeItems = groups[filter];
+  }
+
   const hasAny = activeItems.length > 0;
 
   return (
