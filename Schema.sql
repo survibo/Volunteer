@@ -175,7 +175,7 @@ create table if not exists public.volunteer_activities (
   constraint volunteer_activities_capacity_check
     check (capacity > 0),
   constraint volunteer_activities_schedule_check
-    check (application_deadline <= starts_at and starts_at < ends_at),
+    check (application_deadline::date <= starts_at::date and starts_at::date <= ends_at::date),
   chat_link          text,                                                  -- 오픈채팅방 링크 (수락된 신청자에게만 표시)
   constraint volunteer_activities_image_path_check
     check (
@@ -193,6 +193,11 @@ create index if not exists volunteer_activities_starts_at_idx on public.voluntee
 
 alter table public.volunteer_activities
   add column if not exists chat_link text;
+
+alter table public.volunteer_activities
+  drop constraint if exists volunteer_activities_schedule_check,
+  add constraint volunteer_activities_schedule_check
+    check (application_deadline::date <= starts_at::date and starts_at::date <= ends_at::date);
 
 
 -- =============================================================================
@@ -282,7 +287,7 @@ create table if not exists public.educations (
   constraint educations_capacity_check
     check (capacity > 0),
   constraint educations_schedule_check
-    check (application_deadline <= starts_at and starts_at < ends_at),
+    check (application_deadline::date <= starts_at::date and starts_at::date <= ends_at::date),
   constraint educations_image_path_check
     check (
       image_path is null
@@ -299,6 +304,11 @@ create index if not exists educations_starts_at_idx on public.educations(starts_
 
 alter table public.educations
   add column if not exists chat_link text;
+
+alter table public.educations
+  drop constraint if exists educations_schedule_check,
+  add constraint educations_schedule_check
+    check (application_deadline::date <= starts_at::date and starts_at::date <= ends_at::date);
 
 
 -- =============================================================================

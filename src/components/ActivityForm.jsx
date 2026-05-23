@@ -25,6 +25,11 @@ function toDateOnly(iso) {
   return `${y}-${m}-${day}`
 }
 
+function toLocalDateKey(value) {
+  if (!value) return ''
+  return value.slice(0, 10)
+}
+
 const emptyForm = {
   title: '',
   description: '',
@@ -145,6 +150,18 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
     if (capacity < 1) {
       setSaving(false)
       setErrorMessage('정원은 1명 이상이어야 합니다.')
+      return
+    }
+
+    if (toLocalDateKey(form.application_deadline) > form.starts_at) {
+      setSaving(false)
+      setErrorMessage('신청 마감일은 시작일보다 늦을 수 없습니다.')
+      return
+    }
+
+    if (form.starts_at > form.ends_at) {
+      setSaving(false)
+      setErrorMessage('종료일은 시작일보다 빠를 수 없습니다.')
       return
     }
 

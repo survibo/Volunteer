@@ -143,17 +143,17 @@ export default function AdminApplicationsPage({ table }) {
   }, [id, kind]);
 
   const acceptedCount = applications.filter(
-    (app) => app.status === "accepted"
+    (app) => app?.status === "accepted"
   ).length;
   const statusFilteredCount =
     statusFilter === "all"
-      ? applications.length
-      : applications.filter((app) => app.status === statusFilter).length;
+      ? applications.filter(Boolean).length
+      : applications.filter((app) => app?.status === statusFilter).length;
   const filteredApplications = useMemo(() => {
     const keyword = query.trim().toLowerCase();
 
     return applications.filter((app) => {
-      if (statusFilter !== "all" && app.status !== statusFilter) {
+      if (!app || (statusFilter !== "all" && app.status !== statusFilter)) {
         return false;
       }
 
@@ -235,7 +235,7 @@ export default function AdminApplicationsPage({ table }) {
     const completedTitle =
       activity && new Date(activity.ends_at) <= new Date() ? activity.title : "";
     const rows = applications
-      .filter((app) => selectedStatuses.includes(app.status))
+      .filter((app) => selectedStatuses.includes(app?.status))
       .map((app) => [
         formatExportDate(app.created_at),
         app.users?.name ?? "",
@@ -245,7 +245,7 @@ export default function AdminApplicationsPage({ table }) {
         app.users?.workplace_or_school ?? "",
         app.users?.volunteer_experience ?? "",
         app.users?.education_experience ?? "",
-        app.status === "accepted" ? completedTitle : "",
+        app?.status === "accepted" ? completedTitle : "",
       ]);
 
     const worksheet = XLSX.utils.aoa_to_sheet([

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import TopLoadingBar from '../../components/TopLoadingBar'
 import { approveMember, cancelMemberApproval, getMember, grantAdmin } from '../../lib/memberApi'
+import { downloadMemberCert } from '../../lib/pdfCert'
 
 function roleLabel(role) {
   if (role === 'admin') return '관리자'
@@ -183,7 +184,6 @@ export default function AdminMemberDetailPage() {
               onClick={async () => {
                 setDownloading(true)
                 try {
-                  const { downloadMemberCert } = await import('../../lib/pdfCert')
                   await downloadMemberCert(member)
                 } catch (e) {
                   setErrorMessage(e.message)

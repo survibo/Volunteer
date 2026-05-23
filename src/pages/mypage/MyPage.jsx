@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
 import { signOut, withdrawCurrentUser } from "../../lib/auth";
+import { downloadMemberCert } from "../../lib/pdfCert";
 
 function formatDate(iso) {
   if (!iso) return "-";
@@ -53,7 +54,6 @@ export default function MyPage({ profile }) {
               onClick={async () => {
                 setPdfLoading(true);
                 try {
-                  const { downloadMemberCert } = await import("../../lib/pdfCert");
                   const blob = await downloadMemberCert(profile, true);
                   window.open(URL.createObjectURL(blob), "_blank");
                 } catch (e) {

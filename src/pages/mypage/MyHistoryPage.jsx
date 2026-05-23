@@ -46,7 +46,8 @@ export default function MyHistoryPage({ profile, memberId, hideHeader }) {
   if (loading) return <TopLoadingBar />
 
   const now = new Date()
-  const filtered = kindFilter === 'all' ? applications : applications.filter((a) => a.kind === kindFilter)
+  const validApplications = applications.filter((a) => a?.status && a?._activity)
+  const filtered = kindFilter === 'all' ? validApplications : validApplications.filter((a) => a.kind === kindFilter)
   const current = filtered.filter(
     (a) => a.status === 'pending' || (a.status === 'accepted' && new Date(a._activity.ends_at) > now)
   )
@@ -129,6 +130,10 @@ function Section({ title, count, emptyMessage, children }) {
 }
 
 function ApplicationCard({ app, now }) {
+  if (!app?._activity) {
+    return null
+  }
+
   const activity = app._activity
   const kindLabel = app.kind === 'volunteer' ? '봉사' : '교육'
   const isPast = new Date(activity.ends_at) <= now

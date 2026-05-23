@@ -77,7 +77,7 @@ export async function listActivities(kind) {
 
   throwIfError(error)
 
-  return data ?? []
+  return (data ?? []).filter(Boolean)
 }
 
 export async function listApplicantCounts(kind, activityIds) {
@@ -224,7 +224,11 @@ export async function listMyApplications(userId) {
 
     throwIfError(error)
 
-    for (const app of data ?? []) {
+    for (const app of (data ?? []).filter(Boolean)) {
+      if (!app.status || !app[cfg.table]) {
+        continue
+      }
+
       results.push({
         ...app,
         kind,

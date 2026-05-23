@@ -52,7 +52,6 @@ export default defineConfig({
       workbox: {
         cleanupOutdatedCaches: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
-        globIgnores: ["**/pdfCert-*.js", "**/xlsx-*.js"],
         navigateFallback: "/",
         navigateFallbackDenylist: [/^\/api\//, /^\/auth\//],
       },

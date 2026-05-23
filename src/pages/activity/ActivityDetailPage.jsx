@@ -111,7 +111,7 @@ export default function ActivityDetailPage({ table, profile }) {
 
     try {
       await cancelOwnApplication(kind, application.id);
-      setApplication((prev) => ({ ...prev, status: "cancelled" }));
+      setApplication((prev) => (prev ? { ...prev, status: "cancelled" } : prev));
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
@@ -178,7 +178,7 @@ export default function ActivityDetailPage({ table, profile }) {
           </div>
         )}
       </div>
-      {application.status === "accepted" && activity.chat_link && (
+      {application?.status === "accepted" && activity.chat_link && (
         <a
           className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover"
           href={activity.chat_link}
@@ -261,10 +261,10 @@ export default function ActivityDetailPage({ table, profile }) {
           <p className="text-sm text-text-secondary">
             신청 상태:{" "}
             <span className="font-semibold text-text-primary">
-              {statusLabel[application.status]}
+              {statusLabel[application?.status]}
             </span>
           </p>
-          {application.status === "accepted" && activity.chat_link && (
+          {application?.status === "accepted" && activity.chat_link && (
             <a
               className="mt-4 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover"
               href={activity.chat_link}
