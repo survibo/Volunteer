@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { getCurrentProfile, getHomePath } from '../lib/auth'
-import { supabase } from '../lib/supabase'
+import { getCurrentProfile, getHomePath } from '../../lib/auth'
+import { supabase } from '../../lib/supabase'
 
 const emptyForm = {
   name: '',

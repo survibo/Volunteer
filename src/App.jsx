@@ -2,18 +2,20 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
 import AppFrame from './components/AppFrame'
 import { getCurrentProfile, getHomePath } from './lib/auth'
-import AdminPage from './pages/AdminPage'
-import AuthCallbackPage from './pages/AuthCallbackPage'
+import ActivityDetailPage from './pages/activity/ActivityDetailPage'
+import AdminPage from './pages/admin/AdminPage'
+import AdminActivityEditPage from './pages/admin/AdminActivityEditPage'
+import AuthCallbackPage from './pages/auth/AuthCallbackPage'
+import ComingSoonPage from './pages/ComingSoonPage'
 import CreateEducationPage from './pages/admin/CreateEducationPage'
 import CreateVolunteerPage from './pages/admin/CreateVolunteerPage'
-import EducationPage from './pages/EducationPage'
-import LoginPage from './pages/LoginPage'
-import MyPage from './pages/MyPage'
-import MyPageEditPage from './pages/MyPageEditPage'
+import EducationPage from './pages/activity/EducationPage'
+import LoginPage from './pages/auth/LoginPage'
+import MyPage from './pages/mypage/MyPage'
+import MyPageEditPage from './pages/mypage/MyPageEditPage'
 import NotFoundPage from './pages/NotFoundPage'
-import PendingPage from './pages/PendingPage'
-import RegisterPage from './pages/RegisterPage'
-import VolunteerPage from './pages/VolunteerPage'
+import RegisterPage from './pages/auth/RegisterPage'
+import VolunteerPage from './pages/activity/VolunteerPage'
 
 function PublicOnly({ children }) {
   const [state, setState] = useState({ loading: true, session: null, profile: null, error: '' })
@@ -145,16 +147,20 @@ export default function App() {
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/auth/register" element={<RegisterPage />} />
         <Route
-          path="/pending"
-          element={<ProtectedRoute>{(profile) => <PendingPage profile={profile} />}</ProtectedRoute>}
-        />
-        <Route
           path="/volunteer"
           element={<ProtectedRoute>{(profile) => <VolunteerPage profile={profile} />}</ProtectedRoute>}
         />
         <Route
+          path="/volunteer/:id"
+          element={<ProtectedRoute>{(profile) => <ActivityDetailPage table="volunteer_activities" profile={profile} />}</ProtectedRoute>}
+        />
+        <Route
           path="/education"
           element={<ProtectedRoute>{(profile) => <EducationPage profile={profile} />}</ProtectedRoute>}
+        />
+        <Route
+          path="/education/:id"
+          element={<ProtectedRoute>{(profile) => <ActivityDetailPage table="educations" profile={profile} />}</ProtectedRoute>}
         />
         <Route
           path="/mypage"
@@ -165,16 +171,68 @@ export default function App() {
           element={<ProtectedRoute>{(profile) => <MyPageEditPage profile={profile} />}</ProtectedRoute>}
         />
         <Route
+          path="/mypage/volunteer"
+          element={<ProtectedRoute>{() => <ComingSoonPage />}</ProtectedRoute>}
+        />
+        <Route
+          path="/mypage/education"
+          element={<ProtectedRoute>{() => <ComingSoonPage />}</ProtectedRoute>}
+        />
+        <Route
+          path="/mypage/withdraw"
+          element={<ProtectedRoute>{() => <ComingSoonPage />}</ProtectedRoute>}
+        />
+        <Route
           path="/admin"
           element={<ProtectedRoute adminOnly>{() => <AdminPage />}</ProtectedRoute>}
+        />
+        <Route
+          path="/admin/members"
+          element={<ProtectedRoute adminOnly>{() => <ComingSoonPage />}</ProtectedRoute>}
+        />
+        <Route
+          path="/admin/members/pending"
+          element={<ProtectedRoute adminOnly>{() => <ComingSoonPage />}</ProtectedRoute>}
+        />
+        <Route
+          path="/admin/members/:id"
+          element={<ProtectedRoute adminOnly>{() => <ComingSoonPage />}</ProtectedRoute>}
+        />
+        <Route
+          path="/admin/members/withdrawn"
+          element={<ProtectedRoute adminOnly>{() => <ComingSoonPage />}</ProtectedRoute>}
+        />
+        <Route
+          path="/admin/volunteer"
+          element={<ProtectedRoute adminOnly>{() => <ComingSoonPage />}</ProtectedRoute>}
         />
         <Route
           path="/admin/volunteer/new"
           element={<ProtectedRoute adminOnly>{(profile) => <CreateVolunteerPage profile={profile} />}</ProtectedRoute>}
         />
         <Route
+          path="/admin/volunteer/:id"
+          element={<ProtectedRoute adminOnly>{(profile) => <AdminActivityEditPage table="volunteer_activities" redirectTo="/volunteer" sectionLabel="봉사활동" pageTitle="봉사활동 수정" profile={profile} />}</ProtectedRoute>}
+        />
+        <Route
+          path="/admin/volunteer/:id/applications"
+          element={<ProtectedRoute adminOnly>{() => <ComingSoonPage />}</ProtectedRoute>}
+        />
+        <Route
+          path="/admin/education"
+          element={<ProtectedRoute adminOnly>{() => <ComingSoonPage />}</ProtectedRoute>}
+        />
+        <Route
           path="/admin/education/new"
           element={<ProtectedRoute adminOnly>{(profile) => <CreateEducationPage profile={profile} />}</ProtectedRoute>}
+        />
+        <Route
+          path="/admin/education/:id"
+          element={<ProtectedRoute adminOnly>{(profile) => <AdminActivityEditPage table="educations" redirectTo="/education" sectionLabel="교육" pageTitle="교육 수정" profile={profile} />}</ProtectedRoute>}
+        />
+        <Route
+          path="/admin/education/:id/applications"
+          element={<ProtectedRoute adminOnly>{() => <ComingSoonPage />}</ProtectedRoute>}
         />
         <Route
           path="*"

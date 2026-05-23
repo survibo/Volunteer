@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
-import { getOAuthRedirectUrl } from '../lib/auth'
+import { supabase } from '../../lib/supabase'
+import { getOAuthRedirectUrl } from '../../lib/auth'
 
 export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState('')

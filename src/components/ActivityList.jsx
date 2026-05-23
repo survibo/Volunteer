@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { Pencil } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 function formatDate(iso) {
@@ -11,6 +12,19 @@ function formatDate(iso) {
   const hh = String(d.getHours()).padStart(2, "0");
   const mm = String(d.getMinutes()).padStart(2, "0");
   return `${y}.${m}.${day} ${hh}:${mm}`;
+}
+
+function remainingText(deadline) {
+  const diff = new Date(deadline) - new Date()
+  if (diff <= 0) return '마감됨'
+
+  const days = Math.floor(diff / 86400000)
+  const hours = Math.floor((diff % 86400000) / 3600000)
+  const minutes = Math.floor((diff % 3600000) / 60000)
+
+  if (days > 0) return `D-${days}`
+  if (hours > 0) return `${hours}시간 ${minutes}분 남음`
+  return `${minutes}분 남음`
 }
 
 const filterOptions = [
@@ -45,22 +59,31 @@ function categorize(activities) {
   return groups;
 }
 
-function ActivityCard({ activity }) {
+function ActivityCard({ activity, detailPath, adminEditBasePath, isAdmin }) {
+  const navigate = useNavigate();
+
   return (
-    <div className="rounded-xl border border-border-default bg-surface-base p-5">
+    <div
+      className="relative cursor-pointer rounded-xl border border-border-default bg-surface-base p-5 hover:bg-surface-subtle"
+      onClick={() => navigate(`${detailPath}/${activity.id}`)}
+    >
       <h3 className="text-lg font-bold text-text-primary">{activity.title}</h3>
       <div className="mt-3 grid gap-1.5 text-sm text-text-secondary">
-        <p>{activity.location}</p>
-        <p>
-          {formatDate(activity.starts_at)} ~ {formatDate(activity.ends_at)}
-        </p>
         <p>마감 {formatDate(activity.application_deadline)}</p>
+        <p className="text-status-error-text">{remainingText(activity.application_deadline)}</p>
         <p>정원 {activity.capacity}명</p>
       </div>
-      {activity.description && (
-        <p className="mt-3 text-sm text-text-secondary line-clamp-2">
-          {activity.description}
-        </p>
+      {isAdmin && (
+        <button
+          className="absolute right-3 top-3 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-text-secondary hover:bg-surface-subtle"
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`${adminEditBasePath}/${activity.id}`);
+          }}
+        >
+          <Pencil size={16} />
+        </button>
       )}
     </div>
   );
@@ -81,6 +104,7 @@ export default function ActivityList({
   pageTitle,
   createLabel,
   createPath,
+  detailBasePath,
   profile,
 }) {
   const isAdmin = profile?.role === "admin";
@@ -138,7 +162,7 @@ export default function ActivityList({
             {hasAny ? (
               <div className="grid gap-3">
                 {activeItems.map((activity) => (
-                  <ActivityCard key={activity.id} activity={activity} />
+                  <ActivityCard key={activity.id} activity={activity} detailPath={detailBasePath} adminEditBasePath={isAdmin ? `/admin${detailBasePath}` : null} isAdmin={isAdmin} />
                 ))}
               </div>
             ) : (

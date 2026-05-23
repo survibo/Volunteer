@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../../lib/supabase'
 
 export default function MyPageEditPage({ profile }) {
   const navigate = useNavigate()

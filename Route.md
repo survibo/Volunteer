@@ -17,6 +17,7 @@
 
 ### 마이페이지
 /mypage                    # 마이페이지 홈
+/mypage/edit               # 마이페이지 수정
 /mypage/volunteer          # 내 봉사활동 신청 내역
 /mypage/education          # 내 교육 신청 내역
 /mypage/withdraw           # 회원 탈퇴
@@ -33,13 +34,15 @@
 ### 봉사활동 관리
 /admin/volunteer           # 봉사활동 목록 (관리자 뷰)
 /admin/volunteer/new       # 봉사활동 개설
-/admin/volunteer/:id       # 봉사활동 상세 + 수정 + 폐지
+/admin/volunteer/:id       # 봉사활동 상세
+/admin/volunteer/edit/:id       # 봉사활동 수정 + 폐지
 /admin/volunteer/:id/applications  # 신청 목록 + 수락/거절/취소 처리
 
 ### 교육 관리
 /admin/education           # 교육 목록 (관리자 뷰)
 /admin/education/new       # 교육 개설
-/admin/education/:id       # 교육 상세 + 수정 + 폐지
+/admin/education/:id       # 교육 상세
+/admin/education/edit/:id  # 교육 수정 + 폐지
 /admin/education/:id/applications  # 신청 목록 + 수락/거절/취소 처리
 
 ## Route Guards

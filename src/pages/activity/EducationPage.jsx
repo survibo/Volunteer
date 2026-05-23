@@ -1,4 +1,4 @@
-import ActivityList from '../components/ActivityList'
+import ActivityList from '../../components/ActivityList'
 
 export default function EducationPage({ profile }) {
   return (
@@ -8,6 +8,7 @@ export default function EducationPage({ profile }) {
       pageTitle="교육"
       createLabel="새 교육"
       createPath="/admin/education/new"
+      detailBasePath="/education"
       profile={profile}
     />
   )

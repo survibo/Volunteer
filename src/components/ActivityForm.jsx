@@ -2,6 +2,17 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { supabase } from '../lib/supabase'
 
+function toDatetimeLocal(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${day}T${hh}:${mm}`
+}
+
 const emptyForm = {
   title: '',
   description: '',
@@ -12,9 +23,23 @@ const emptyForm = {
   capacity: '',
 }
 
-export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitle, profile }) {
+function buildInitial(initialData) {
+  if (!initialData) return emptyForm
+  return {
+    title: initialData.title ?? '',
+    description: initialData.description ?? '',
+    location: initialData.location ?? '',
+    application_deadline: toDatetimeLocal(initialData.application_deadline),
+    starts_at: toDatetimeLocal(initialData.starts_at),
+    ends_at: toDatetimeLocal(initialData.ends_at),
+    capacity: String(initialData.capacity ?? ''),
+  }
+}
+
+export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitle, profile, initialData }) {
   const navigate = useNavigate()
-  const [form, setForm] = useState(emptyForm)
+  const isEdit = !!initialData
+  const [form, setForm] = useState(() => buildInitial(initialData))
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -52,10 +77,16 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
       starts_at: new Date(form.starts_at).toISOString(),
       ends_at: new Date(form.ends_at).toISOString(),
       capacity,
-      created_by: profile.id,
     }
 
-    const { error } = await supabase.from(table).insert(payload)
+    let error
+
+    if (isEdit) {
+      ({ error } = await supabase.from(table).update(payload).eq('id', initialData.id))
+    } else {
+      payload.created_by = profile.id
+      ;({ error } = await supabase.from(table).insert(payload))
+    }
 
     setSaving(false)
 
@@ -173,7 +204,7 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
             disabled={saving}
             type="submit"
           >
-            {saving ? '저장 중' : '생성'}
+            {saving ? '저장 중' : isEdit ? '저장' : '생성'}
           </button>
           <button
             className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle sm:w-auto"

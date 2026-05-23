@@ -1,4 +1,4 @@
-import ActivityList from '../components/ActivityList'
+import ActivityList from '../../components/ActivityList'
 
 export default function VolunteerPage({ profile }) {
   return (
@@ -8,6 +8,7 @@ export default function VolunteerPage({ profile }) {
       pageTitle="봉사활동"
       createLabel="새 봉사활동"
       createPath="/admin/volunteer/new"
+      detailBasePath="/volunteer"
       profile={profile}
     />
   )
