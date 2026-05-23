@@ -449,9 +449,9 @@ grant usage on type public.application_status to authenticated;
 
 grant select, insert, update on table public.users to authenticated;
 grant select on table public.withdrawn_users to authenticated;
-grant select, insert, update on table public.volunteer_activities to authenticated;
+grant select, insert, update, delete on table public.volunteer_activities to authenticated;
 grant select, insert, update on table public.volunteer_applications to authenticated;
-grant select, insert, update on table public.educations to authenticated;
+grant select, insert, update, delete on table public.educations to authenticated;
 grant select, insert, update on table public.education_applications to authenticated;
 
 
@@ -732,7 +732,7 @@ begin
         cancelled_by = null,
         cancellation_reason = null
     where id = application_id
-      and status in ('pending', 'accepted', 'rejected');
+      and status in ('pending', 'accepted', 'rejected', 'cancelled');
   else
     update public.volunteer_applications
     set status = 'cancelled',
@@ -742,7 +742,7 @@ begin
         decided_at = null,
         decided_by = null
     where id = application_id
-      and status in ('pending', 'accepted', 'rejected');
+      and status in ('pending', 'accepted', 'rejected', 'cancelled');
   end if;
 
   if not found then
@@ -779,7 +779,7 @@ begin
         cancelled_by = null,
         cancellation_reason = null
     where id = application_id
-      and status in ('pending', 'accepted', 'rejected');
+      and status in ('pending', 'accepted', 'rejected', 'cancelled');
   else
     update public.education_applications
     set status = 'cancelled',
@@ -789,7 +789,7 @@ begin
         decided_at = null,
         decided_by = null
     where id = application_id
-      and status in ('pending', 'accepted', 'rejected');
+      and status in ('pending', 'accepted', 'rejected', 'cancelled');
   end if;
 
   if not found then

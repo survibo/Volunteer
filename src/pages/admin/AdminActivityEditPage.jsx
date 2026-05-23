@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Trash2 } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { deleteActivity, getActivity, getActivityKind } from '../../lib/activityApi'
 import ActivityForm from '../../components/ActivityForm'
 
 export default function AdminActivityEditPage({ table, redirectTo, sectionLabel, pageTitle, profile }) {
   const { id } = useParams()
   const navigate = useNavigate()
+  const kind = getActivityKind(table)
   const [initialData, setInitialData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
@@ -17,35 +18,37 @@ export default function AdminActivityEditPage({ table, redirectTo, sectionLabel,
     let mounted = true
 
     async function load() {
-      const { data, error } = await supabase.from(table).select('*').eq('id', id).single()
-
-      if (!mounted) return
-
-      if (error) {
-        setErrorMessage(error.message)
-      } else {
-        setInitialData(data)
+      try {
+        const data = await getActivity(kind, id)
+        if (mounted) {
+          setInitialData(data)
+        }
+      } catch (error) {
+        if (mounted) {
+          setErrorMessage(error.message)
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false)
+        }
       }
-      setLoading(false)
     }
 
     load()
     return () => { mounted = false }
-  }, [id, table])
+  }, [id, kind])
 
   async function handleDelete() {
     setDeleting(true)
 
-    const { error } = await supabase.from(table).delete().eq('id', id)
-
-    if (error) {
+    try {
+      await deleteActivity(kind, id)
+      navigate(redirectTo, { replace: true })
+    } catch (error) {
       setErrorMessage(error.message)
       setDeleting(false)
       setShowDeleteModal(false)
-      return
     }
-
-    navigate(redirectTo, { replace: true })
   }
 
   if (loading) {

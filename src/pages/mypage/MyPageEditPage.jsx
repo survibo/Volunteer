@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { supabase } from '../../lib/supabase'
+import { updateOwnProfile } from '../../lib/auth'
 
 export default function MyPageEditPage({ profile }) {
   const navigate = useNavigate()
@@ -34,23 +34,21 @@ export default function MyPageEditPage({ profile }) {
       return
     }
 
-    const { error } = await supabase.rpc('update_own_profile', {
-      new_name: name,
-      new_phone: phone,
-      new_email: email,
-      new_address: profile.address,
-      new_workplace_or_school: workplace_or_school,
-      new_license_number: profile.license_number,
-    })
-
-    setSaving(false)
-
-    if (error) {
+    try {
+      await updateOwnProfile({
+        name,
+        phone,
+        email,
+        address: profile.address,
+        workplace_or_school,
+        license_number: profile.license_number,
+      })
+      navigate('/mypage', { replace: true })
+    } catch (error) {
       setErrorMessage(error.message)
-      return
+    } finally {
+      setSaving(false)
     }
-
-    navigate('/mypage', { replace: true })
   }
 
   return (

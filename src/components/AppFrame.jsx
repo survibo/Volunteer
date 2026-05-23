@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router";
-import { supabase } from "../lib/supabase";
+import { signOut } from "../lib/auth";
 
 const navItems = [
   { to: "/volunteer", label: "봉사활동" },
@@ -16,7 +16,7 @@ export default function AppFrame({ profile, children }) {
     profile?.role === "admin" ? [...navItems, adminNavItem] : navItems;
 
   async function handleSignOut() {
-    await supabase.auth.signOut();
+    await signOut();
     navigate("/", { replace: true });
   }
 

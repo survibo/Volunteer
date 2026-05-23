@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { getCurrentProfile, getHomePath } from '../../lib/auth'
-import { supabase } from '../../lib/supabase'
+import { exchangeOAuthCode, getCurrentProfile, getHomePath } from '../../lib/auth'
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
@@ -14,12 +13,7 @@ export default function AuthCallbackPage() {
       try {
         const code = new URLSearchParams(window.location.search).get('code')
 
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code)
-          if (error && !error.message.toLowerCase().includes('invalid flow state')) {
-            throw error
-          }
-        }
+        await exchangeOAuthCode(code)
 
         const { session, profile } = await getCurrentProfile()
 

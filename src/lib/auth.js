@@ -24,6 +24,38 @@ export async function getCurrentUser() {
   return data.user
 }
 
+export async function signOut() {
+  const { error } = await supabase.auth.signOut()
+
+  if (error) {
+    throw error
+  }
+}
+
+export async function signInWithOAuth(provider) {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: getOAuthRedirectUrl(),
+    },
+  })
+
+  if (error) {
+    throw error
+  }
+}
+
+export async function exchangeOAuthCode(code) {
+  if (!code) {
+    return
+  }
+
+  const { error } = await supabase.auth.exchangeCodeForSession(code)
+  if (error && !error.message.toLowerCase().includes('invalid flow state')) {
+    throw error
+  }
+}
+
 export async function getCurrentProfile() {
   const user = await getCurrentUser()
 
@@ -44,6 +76,29 @@ export async function getCurrentProfile() {
   }
 
   return { session, user, profile: data }
+}
+
+export async function createPendingProfile(payload) {
+  const { error } = await supabase.from('users').insert(payload)
+
+  if (error) {
+    throw error
+  }
+}
+
+export async function updateOwnProfile(payload) {
+  const { error } = await supabase.rpc('update_own_profile', {
+    new_name: payload.name,
+    new_phone: payload.phone,
+    new_email: payload.email,
+    new_address: payload.address,
+    new_workplace_or_school: payload.workplace_or_school,
+    new_license_number: payload.license_number,
+  })
+
+  if (error) {
+    throw error
+  }
 }
 
 export function getHomePath(profile) {

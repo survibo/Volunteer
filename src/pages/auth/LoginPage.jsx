@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '../../lib/supabase'
-import { getOAuthRedirectUrl } from '../../lib/auth'
+import { signInWithOAuth } from '../../lib/auth'
 
 export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState('')
@@ -10,14 +9,9 @@ export default function LoginPage() {
     setErrorMessage('')
     setLoadingProvider(provider)
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: getOAuthRedirectUrl(),
-      },
-    })
-
-    if (error) {
+    try {
+      await signInWithOAuth(provider)
+    } catch (error) {
       setErrorMessage(error.message)
       setLoadingProvider('')
     }

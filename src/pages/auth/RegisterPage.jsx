@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { getCurrentProfile, getHomePath } from '../../lib/auth'
-import { supabase } from '../../lib/supabase'
+import { createPendingProfile, getCurrentProfile, getHomePath } from '../../lib/auth'
 
 const emptyForm = {
   name: '',
@@ -86,16 +85,14 @@ export default function RegisterPage() {
       license_number: form.license_number.trim() || null,
     }
 
-    const { error } = await supabase.from('users').insert(payload)
-
-    setSaving(false)
-
-    if (error) {
+    try {
+      await createPendingProfile(payload)
+      navigate('/volunteer', { replace: true })
+    } catch (error) {
       setErrorMessage(error.message)
-      return
+    } finally {
+      setSaving(false)
     }
-
-    navigate('/volunteer', { replace: true })
   }
 
   if (loading) {

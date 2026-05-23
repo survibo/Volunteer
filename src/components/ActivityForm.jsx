@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { X } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { createActivity, getActivityKind, updateActivity } from '../lib/activityApi'
+import { getVolunteerImageUrl, parseImagePaths, uploadActivityImages } from '../lib/storageApi'
 import ImageWithFallback from './ImageWithFallback'
 
 function toDatetimeLocal(iso) {
@@ -13,16 +14,6 @@ function toDatetimeLocal(iso) {
   const hh = String(d.getHours()).padStart(2, '0')
   const mm = String(d.getMinutes()).padStart(2, '0')
   return `${y}-${m}-${day}T${hh}:${mm}`
-}
-
-function parseImagePaths(value) {
-  if (!value) return []
-  try {
-    const parsed = JSON.parse(value)
-    return Array.isArray(parsed) ? parsed : [value]
-  } catch {
-    return [value]
-  }
 }
 
 const emptyForm = {
@@ -50,6 +41,7 @@ function buildInitial(initialData) {
 
 export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitle, profile, initialData }) {
   const navigate = useNavigate()
+  const kind = getActivityKind(table)
   const isEdit = !!initialData
   const [form, setForm] = useState(() => buildInitial(initialData))
   const [existingPaths, setExistingPaths] = useState(() => parseImagePaths(initialData?.image_path))
@@ -79,18 +71,6 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
     })
   }
 
-  async function uploadFiles() {
-    const uploaded = []
-    for (const { file } of newFiles) {
-      const ext = file.name.split('.').pop()
-      const objectPath = `${table}/${crypto.randomUUID()}.${ext}`
-      const { error } = await supabase.storage.from('volunteer').upload(objectPath, file)
-      if (error) throw new Error(error.message)
-      uploaded.push(objectPath)
-    }
-    return uploaded
-  }
-
   async function handleSubmit(e) {
     e.preventDefault()
     setSaving(true)
@@ -116,7 +96,7 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
 
     if (newFiles.length > 0) {
       try {
-        const newPaths = await uploadFiles()
+        const newPaths = await uploadActivityImages(kind, newFiles.map(({ file }) => file))
         allPaths = [...allPaths, ...newPaths]
       } catch (error) {
         setSaving(false)
@@ -138,11 +118,14 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
 
     let error
 
-    if (isEdit) {
-      ({ error } = await supabase.from(table).update(payload).eq('id', initialData.id))
-    } else {
-      payload.created_by = profile.id
-      ;({ error } = await supabase.from(table).insert(payload))
+    try {
+      if (isEdit) {
+        await updateActivity(kind, initialData.id, payload)
+      } else {
+        await createActivity(kind, { ...payload, created_by: profile.id })
+      }
+    } catch (caughtError) {
+      error = caughtError
     }
 
     setSaving(false)
@@ -207,7 +190,7 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
                 <div key={`e-${i}`} className="group relative">
                   <ImageWithFallback
                     className="h-32 w-full rounded-lg object-cover"
-                    src={supabase.storage.from('volunteer').getPublicUrl(path).data.publicUrl}
+                    src={getVolunteerImageUrl(path)}
                     alt=""
                   />
                   <button

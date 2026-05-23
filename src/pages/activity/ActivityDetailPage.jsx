@@ -1,18 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Pencil, Users } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import {
+  applyToActivity,
+  cancelOwnApplication,
+  getActivity,
+  getActivityConfig,
+  getActivityKind,
+  getMyApplication,
+} from '../../lib/activityApi'
+import { getVolunteerImageUrl, parseImagePaths } from '../../lib/storageApi'
 import ImageWithFallback from '../../components/ImageWithFallback'
-
-function parseImagePaths(value) {
-  if (!value) return []
-  try {
-    const parsed = JSON.parse(value)
-    return Array.isArray(parsed) ? parsed : [value]
-  } catch {
-    return [value]
-  }
-}
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -23,29 +21,6 @@ function formatDate(iso) {
   const hh = String(d.getHours()).padStart(2, '0')
   const mm = String(d.getMinutes()).padStart(2, '0')
   return `${y}.${m}.${day} ${hh}:${mm}`
-}
-
-const config = {
-  volunteer_activities: {
-    applicationTable: 'volunteer_applications',
-    foreignKey: 'volunteer_activity_id',
-    cancelRpc: 'cancel_own_volunteer_application',
-    decideRpc: 'decide_volunteer_application',
-    listPath: '/volunteer',
-    adminEditPath: '/admin/volunteer',
-    adminApplicationsPath: '/admin/volunteer',
-    label: '봉사활동',
-  },
-  educations: {
-    applicationTable: 'education_applications',
-    foreignKey: 'education_id',
-    cancelRpc: 'cancel_own_education_application',
-    decideRpc: 'decide_education_application',
-    listPath: '/education',
-    adminEditPath: '/admin/education',
-    adminApplicationsPath: '/admin/education',
-    label: '교육',
-  },
 }
 
 const statusLabel = {
@@ -59,7 +34,8 @@ export default function ActivityDetailPage({ table, profile }) {
   const { id } = useParams()
   const navigate = useNavigate()
   const isAdmin = profile?.role === 'admin'
-  const cfg = config[table]
+  const kind = getActivityKind(table)
+  const cfg = getActivityConfig(kind)
   const [activity, setActivity] = useState(null)
   const [application, setApplication] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -77,21 +53,12 @@ export default function ActivityDetailPage({ table, profile }) {
 
     async function load() {
       try {
-        const { data: activityData } = await supabase
-          .from(table)
-          .select('*')
-          .eq('id', id)
-          .single()
+        const activityData = await getActivity(kind, id)
 
         if (!mounted) return
         setActivity(activityData)
 
-        const { data: appData } = await supabase
-          .from(cfg.applicationTable)
-          .select('*')
-          .eq(cfg.foreignKey, id)
-          .eq('user_id', profile.id)
-          .maybeSingle()
+        const appData = await getMyApplication(kind, id, profile.id)
 
         if (!mounted) return
         setApplication(appData)
@@ -104,67 +71,34 @@ export default function ActivityDetailPage({ table, profile }) {
 
     load()
     return () => { mounted = false }
-  }, [id, table, cfg.foreignKey, cfg.applicationTable, profile.id])
+  }, [id, kind, profile.id])
 
   async function handleApply() {
     setSaving(true)
     setErrorMessage('')
 
-    let error
-
-    if (application?.status === 'cancelled') {
-      ({ error } = await supabase
-        .from(cfg.applicationTable)
-        .update({
-          status: 'pending',
-          cancelled_at: null,
-          cancelled_by: null,
-          cancellation_reason: null,
-          decided_at: null,
-          decided_by: null,
-        })
-        .eq('id', application.id))
-    } else {
-      ({ error } = await supabase.from(cfg.applicationTable).insert({
-        [cfg.foreignKey]: id,
-        user_id: profile.id,
-        status: 'pending',
-      }))
-    }
-
-    setSaving(false)
-
-    if (error) {
+    try {
+      const nextApplication = await applyToActivity(kind, id, profile.id, application)
+      setApplication(nextApplication)
+    } catch (error) {
       setErrorMessage(error.message)
-      return
+    } finally {
+      setSaving(false)
     }
-
-    const { data } = await supabase
-      .from(cfg.applicationTable)
-      .select('*')
-      .eq(cfg.foreignKey, id)
-      .eq('user_id', profile.id)
-      .single()
-
-    setApplication(data)
   }
 
   async function handleCancel() {
     setSaving(true)
     setErrorMessage('')
 
-    const { error } = await supabase.rpc(cfg.cancelRpc, {
-      application_id: application.id,
-    })
-
-    setSaving(false)
-
-    if (error) {
+    try {
+      await cancelOwnApplication(kind, application.id)
+      setApplication((prev) => ({ ...prev, status: 'cancelled' }))
+    } catch (error) {
       setErrorMessage(error.message)
-      return
+    } finally {
+      setSaving(false)
     }
-
-    setApplication((prev) => ({ ...prev, status: 'cancelled' }))
   }
 
   if (loading) {
@@ -251,7 +185,7 @@ export default function ActivityDetailPage({ table, profile }) {
               <ImageWithFallback
                 key={i}
                 className="w-full rounded-xl border border-border-default"
-                src={supabase.storage.from('volunteer').getPublicUrl(path).data.publicUrl}
+                src={getVolunteerImageUrl(path)}
                 alt={`${activity.title} ${i + 1}`}
               />
             ))}
