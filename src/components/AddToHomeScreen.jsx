@@ -59,7 +59,7 @@ export default function AddToHomeScreen() {
   if (dismissed || isStandalone() || !show || !isMobile()) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md">
+    <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md animate-fade-in-up">
       <div className="relative rounded-xl border border-border-default bg-surface-base p-4 shadow-lg">
         <button
           className="absolute right-2 top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-text-tertiary hover:bg-surface-subtle hover:text-text-primary"

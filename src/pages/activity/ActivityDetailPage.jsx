@@ -11,6 +11,7 @@ import {
 } from "../../lib/activityApi";
 import { getImageUrl, parseImagePaths } from "../../lib/storageApi";
 import ImageWithFallback from "../../components/ImageWithFallback";
+import ImageViewer from "../../components/ImageViewer";
 import TopLoadingBar from "../../components/TopLoadingBar";
 import { deadlineDdayText, formatDateTime } from "../../lib/dateUtils";
 
@@ -35,6 +36,11 @@ export default function ActivityDetailPage({ table, profile }) {
   const [now, setNow] = useState(() => new Date());
 
   const [linkCopied, setLinkCopied] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(null);
+
+  const imageUrls = activity
+    ? parseImagePaths(activity.image_path).map((p) => getImageUrl(kind, p))
+    : [];
 
   const deadlinePassed = activity
     ? new Date(activity.application_deadline) <= new Date()
@@ -172,22 +178,24 @@ export default function ActivityDetailPage({ table, profile }) {
           </div>
         )}
       </div>
-      {(() => {
-        const paths = parseImagePaths(activity.image_path);
-        if (paths.length === 0) return null;
-        return (
-          <div className="flex flex-col gap-3">
-            {paths.map((path, i) => (
+      {imageUrls.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {imageUrls.map((url, i) => (
+            <button
+              key={i}
+              className="w-full cursor-pointer rounded-xl p-0 text-left"
+              type="button"
+              onClick={() => setViewerIndex(i)}
+            >
               <ImageWithFallback
-                key={i}
                 className="w-full rounded-xl border border-border-default"
-                src={getImageUrl(kind, path)}
+                src={url}
                 alt={`${activity.title} ${i + 1}`}
               />
-            ))}
-          </div>
-        );
-      })()}
+            </button>
+          ))}
+        </div>
+      )}
       <dl className="grid gap-4 rounded-xl border border-border-default bg-surface-base p-6">
         {activity.description && (
           <div className="grid gap-1">
@@ -278,6 +286,13 @@ export default function ActivityDetailPage({ table, profile }) {
           {saving ? "신청 중" : "신청하기"}
         </button>
       ) : null}
+      {viewerIndex !== null && (
+        <ImageViewer
+          images={imageUrls}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      )}
     </section>
   );
 }
