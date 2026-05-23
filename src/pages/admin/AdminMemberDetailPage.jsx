@@ -231,6 +231,14 @@ export default function AdminMemberDetailPage() {
           <dd className="m-0">{member.license_number || '-'}</dd>
         </div>
         <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
+          <dt className="font-medium text-text-secondary">봉사활동 이력</dt>
+          <dd className="m-0 whitespace-pre-line">{member.volunteer_experience || '-'}</dd>
+        </div>
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
+          <dt className="font-medium text-text-secondary">교육 이력</dt>
+          <dd className="m-0 whitespace-pre-line">{member.education_experience || '-'}</dd>
+        </div>
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">가입일</dt>
           <dd className="m-0">{formatDate(member.created_at)}</dd>
         </div>

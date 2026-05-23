@@ -191,6 +191,9 @@ create table if not exists public.volunteer_activities (
 create index if not exists volunteer_activities_deadline_idx on public.volunteer_activities(application_deadline);
 create index if not exists volunteer_activities_starts_at_idx on public.volunteer_activities(starts_at);
 
+alter table public.volunteer_activities
+  add column if not exists chat_link text;
+
 
 -- =============================================================================
 -- volunteer_applications
@@ -293,6 +296,9 @@ create table if not exists public.educations (
 
 create index if not exists educations_deadline_idx on public.educations(application_deadline);
 create index if not exists educations_starts_at_idx on public.educations(starts_at);
+
+alter table public.educations
+  add column if not exists chat_link text;
 
 
 -- =============================================================================

@@ -6,7 +6,7 @@ function throwIfError(error) {
   }
 }
 
-const memberSelect = 'id, role, member_number, name, phone, email, address, workplace_or_school, license_number, approved_at, created_at'
+const memberSelect = 'id, role, member_number, name, phone, email, address, workplace_or_school, license_number, volunteer_experience, education_experience, approved_at, created_at'
 
 export async function listMembers() {
   const { data, error } = await supabase

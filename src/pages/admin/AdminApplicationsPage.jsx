@@ -109,8 +109,6 @@ export default function AdminApplicationsPage({ table }) {
   const [exportStatuses, setExportStatuses] = useState(
     () => new Set(["accepted", "rejected", "pending"])
   );
-  const [historyExportModalOpen, setHistoryExportModalOpen] = useState(false);
-  const [historyExportStatuses, setHistoryExportStatuses] = useState(() => new Set(["accepted"]));
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
 
@@ -234,6 +232,8 @@ export default function AdminApplicationsPage({ table }) {
   async function exportApplications() {
     const XLSX = await import("xlsx");
     const selectedStatuses = [...exportStatuses];
+    const completedTitle =
+      activity && new Date(activity.ends_at) <= new Date() ? activity.title : "";
     const rows = applications
       .filter((app) => selectedStatuses.includes(app.status))
       .map((app) => [
@@ -243,15 +243,28 @@ export default function AdminApplicationsPage({ table }) {
         app.users?.phone ?? "",
         app.users?.email ?? "",
         app.users?.workplace_or_school ?? "",
+        app.users?.volunteer_experience ?? "",
+        app.users?.education_experience ?? "",
+        app.status === "accepted" ? completedTitle : "",
       ]);
 
     const worksheet = XLSX.utils.aoa_to_sheet([
       [`게시물: ${activity.title}`],
       [],
-      ["신청 일시", "이름", "회원번호", "전화번호", "이메일", "소속"],
+      [
+        "신청 일시",
+        "이름",
+        "회원번호",
+        "전화번호",
+        "이메일",
+        "소속",
+        "exp_vol",
+        "exp_edu",
+        "완료된 활동 제목",
+      ],
       ...rows,
     ]);
-    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }];
     worksheet["!cols"] = [
       { wch: 18 },
       { wch: 14 },
@@ -259,6 +272,9 @@ export default function AdminApplicationsPage({ table }) {
       { wch: 16 },
       { wch: 28 },
       { wch: 20 },
+      { wch: 32 },
+      { wch: 32 },
+      { wch: 40 },
     ];
 
     const workbook = XLSX.utils.book_new();
@@ -270,54 +286,6 @@ export default function AdminApplicationsPage({ table }) {
       )}.xlsx`
     );
     setExportModalOpen(false);
-  }
-
-  async function exportHistory() {
-    const XLSX = await import("xlsx");
-    const selectedStatuses = [...historyExportStatuses];
-    const now = new Date();
-    const rows = applications
-      .filter(
-        (app) =>
-          selectedStatuses.includes(app.status) &&
-          app.status === "accepted" &&
-          activity &&
-          new Date(activity.ends_at) <= now
-      )
-      .map((app) => [
-        formatExportDate(app.created_at),
-        app.users?.name ?? "",
-        applicantMemberLabel(app.users),
-        app.users?.phone ?? "",
-        app.users?.email ?? "",
-        app.users?.workplace_or_school ?? "",
-        activity?.title ?? "",
-      ]);
-
-    const worksheet = XLSX.utils.aoa_to_sheet([
-      ["이수내역"],
-      [],
-      ["신청 일시", "이름", "회원번호", "연락처", "이메일", "소속", "완료된 활동 제목"],
-      ...rows,
-    ]);
-    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }];
-    worksheet["!cols"] = [
-      { wch: 18 },
-      { wch: 14 },
-      { wch: 12 },
-      { wch: 16 },
-      { wch: 28 },
-      { wch: 20 },
-      { wch: 40 },
-    ];
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "이수내역");
-    XLSX.writeFile(
-      workbook,
-      `${safeFilename(activity.title)}_이수내역_${formatFilenameDate(new Date())}.xlsx`
-    );
-    setHistoryExportModalOpen(false);
   }
 
   if (loading) {
@@ -361,14 +329,6 @@ export default function AdminApplicationsPage({ table }) {
         >
           <Download size={16} />
           Excel 추출
-        </button>
-        <button
-          className="inline-flex min-h-[38px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-border-default bg-white px-4 text-sm font-semibold text-text-primary hover:bg-surface-subtle"
-          type="button"
-          onClick={() => setHistoryExportModalOpen(true)}
-        >
-          <Download size={16} />
-          이수내역 추출
         </button>
       </div>
 
@@ -619,7 +579,8 @@ export default function AdminApplicationsPage({ table }) {
               })}
             </div>
             <p className="mt-3 text-sm text-text-secondary">
-              이름, 회원번호, 소속, 전화번호, 이메일, 신청 일시가 포함됩니다.
+              이름, 회원번호, 소속, 전화번호, 이메일, 신청 일시, exp_vol,
+              exp_edu, 완료된 활동 제목이 포함됩니다.
             </p>
             <div className="mt-5 flex gap-2.5">
               <button
@@ -634,73 +595,6 @@ export default function AdminApplicationsPage({ table }) {
                 className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"
                 type="button"
                 onClick={() => setExportModalOpen(false)}
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {historyExportModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setHistoryExportModalOpen(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-xl bg-surface-base p-6 shadow-lg"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">
-              이수내역 추출
-            </p>
-            <h2 className="text-lg font-bold text-text-primary">
-              추출할 신청 상태를 선택하세요.
-            </h2>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {exportStatusOptions.map((option) => {
-                const selected = historyExportStatuses.has(option.value);
-                return (
-                  <button
-                    key={option.value}
-                    className={
-                      selected
-                        ? "min-h-[38px] rounded-lg bg-action-default px-4 text-sm font-semibold text-white"
-                        : "min-h-[38px] rounded-lg border border-border-default bg-white px-4 text-sm font-semibold text-text-secondary hover:bg-surface-subtle"
-                    }
-                    type="button"
-                    onClick={() =>
-                      setHistoryExportStatuses((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(option.value)) {
-                          next.delete(option.value);
-                        } else {
-                          next.add(option.value);
-                        }
-                        return next;
-                      })
-                    }
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-3 text-sm text-text-secondary">
-              신청 일시, 이름, 회원번호, 연락처, 이메일, 소속, 완료된 활동 제목이 포함됩니다.
-            </p>
-            <div className="mt-5 flex gap-2.5">
-              <button
-                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={historyExportStatuses.size === 0}
-                type="button"
-                onClick={exportHistory}
-              >
-                추출
-              </button>
-              <button
-                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"
-                type="button"
-                onClick={() => setHistoryExportModalOpen(false)}
               >
                 닫기
               </button>

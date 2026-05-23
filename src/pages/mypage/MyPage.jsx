@@ -17,6 +17,7 @@ export default function MyPage({ profile }) {
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showWithdrawFinalModal, setShowWithdrawFinalModal] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -108,6 +109,14 @@ export default function MyPage({ profile }) {
           <dd className="m-0">{profile.license_number || "-"}</dd>
         </div>
         <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
+          <dt className="font-medium text-text-secondary">봉사활동 이력</dt>
+          <dd className="m-0 whitespace-pre-line">{profile.volunteer_experience || "-"}</dd>
+        </div>
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
+          <dt className="font-medium text-text-secondary">교육 이력</dt>
+          <dd className="m-0 whitespace-pre-line">{profile.education_experience || "-"}</dd>
+        </div>
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">가입일</dt>
           <dd className="m-0">{formatDate(profile.created_at)}</dd>
         </div>
@@ -192,15 +201,58 @@ export default function MyPage({ profile }) {
                 className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-status-error-text px-5 font-semibold text-white hover:opacity-80 disabled:cursor-progress disabled:opacity-65"
                 disabled={withdrawing}
                 type="button"
-                onClick={handleWithdraw}
+                onClick={() => {
+                  setShowWithdrawModal(false);
+                  setShowWithdrawFinalModal(true);
+                }}
               >
-                {withdrawing ? "탈퇴 중" : "탈퇴"}
+                탈퇴 진행
               </button>
               <button
                 className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"
                 disabled={withdrawing}
                 type="button"
                 onClick={() => setShowWithdrawModal(false)}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWithdrawFinalModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowWithdrawFinalModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-surface-base p-5 shadow-lg sm:p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-status-error-text">
+              최종 확인
+            </p>
+            <h2 className="text-lg font-bold text-text-primary">
+              탈퇴를 최종 확정할까요?
+            </h2>
+            <p className="mt-2 text-sm text-text-secondary">
+              이 버튼을 누르면 계정과 개인 정보가 삭제됩니다.
+            </p>
+            <div className="mt-5 flex gap-2.5">
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-status-error-text px-5 font-semibold text-white hover:opacity-80 disabled:cursor-progress disabled:opacity-65"
+                disabled={withdrawing}
+                type="button"
+                onClick={handleWithdraw}
+              >
+                {withdrawing ? "탈퇴 중" : "최종 탈퇴"}
+              </button>
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"
+                disabled={withdrawing}
+                type="button"
+                onClick={() => setShowWithdrawFinalModal(false)}
               >
                 닫기
               </button>
