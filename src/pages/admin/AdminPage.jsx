@@ -38,14 +38,24 @@ function formatExportDate(iso) {
   return `${y}-${m}-${d} ${hh}:${mm}`;
 }
 
+function formatFilenameDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${y}${m}${d}_${hh}${mm}`;
+}
+
 export default function AdminPage() {
   const [members, setMembers] = useState([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [exportModalOpen, setExportModalOpen] = useState(false);
-  const [exportRoles, setExportRoles] = useState(() => new Set(["member", "pending", "admin"]));
-  const [exporting, setExporting] = useState(false);
+  const [exportRoles, setExportRoles] = useState(
+    () => new Set(["member", "pending", "admin"])
+  );
   const [roleFilter, setRoleFilter] = useState("all");
 
   useEffect(() => {
@@ -111,49 +121,60 @@ export default function AdminPage() {
   }
 
   async function exportMembers() {
-    setExporting(true);
     const XLSX = await import("xlsx");
     const selectedRoles = [...exportRoles];
     const rows = members
       .filter((member) => selectedRoles.includes(member.role))
       .map((member) => [
+        formatExportDate(member.created_at),
         member.name ?? "",
         memberNumberText(member),
         roleLabel(member.role),
-        member.workplace_or_school ?? "",
         member.phone ?? "",
         member.email ?? "",
+        member.workplace_or_school ?? "",
         member.address ?? "",
+        member.address_detail ?? "",
         member.license_number ?? "",
-        formatExportDate(member.created_at),
       ]);
 
     const worksheet = XLSX.utils.aoa_to_sheet([
       ["전체 사용자 목록"],
       [],
-      ["이름", "회원번호", "구분", "소속", "전화번호", "이메일", "주소", "면허번호", "가입일"],
+      [
+        "가입일",
+        "이름",
+        "회원번호",
+        "구분",
+        "전화번호",
+        "이메일",
+        "소속",
+        "주소",
+        "상세주소",
+        "면허번호",
+      ],
       ...rows,
     ]);
-    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }];
+    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }];
     worksheet["!cols"] = [
-      { wch: 14 },
+      { wch: 16 },
+      { wch: 12 },
       { wch: 12 },
       { wch: 10 },
-      { wch: 24 },
       { wch: 16 },
       { wch: 28 },
-      { wch: 32 },
+      { wch: 20 },
+      { wch: 28 },
+      { wch: 20 },
       { wch: 16 },
-      { wch: 18 },
     ];
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "사용자 목록");
-    const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    setExporting(false);
+    XLSX.writeFile(
+      workbook,
+      `전체사용자목록_${formatFilenameDate(new Date())}.xlsx`
+    );
     setExportModalOpen(false);
   }
 
@@ -267,16 +288,17 @@ export default function AdminPage() {
               })}
             </div>
             <p className="mt-3 text-sm text-text-secondary">
-              이름, 회원번호, 구분, 소속, 전화번호, 이메일, 주소, 면허번호, 가입일이 포함됩니다.
+              이름, 회원번호, 구분, 소속, 전화번호, 이메일, 주소, 면허번호,
+              가입일이 포함됩니다.
             </p>
             <div className="mt-5 flex gap-2.5">
               <button
                 className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={exportRoles.size === 0 || exporting}
+                disabled={exportRoles.size === 0}
                 type="button"
                 onClick={exportMembers}
               >
-                {exporting ? "추출 중..." : "추출"}
+                추출
               </button>
               <button
                 className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"

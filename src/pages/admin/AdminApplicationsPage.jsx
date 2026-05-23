@@ -73,6 +73,18 @@ function formatExportDate(iso) {
   return `${y}-${m}-${d} ${hh}:${mm}`;
 }
 
+function formatFilenameDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${y}${m}${d}_${hh}${mm}`;
+}
+
+function safeFilename(value) {
+  return value.replace(/[\\/:*?"<>|]/g, "_").trim() || "applications";
+}
 
 function SummaryItem({ label, value }) {
   return (
@@ -94,11 +106,9 @@ export default function AdminApplicationsPage({ table }) {
   const [processing, setProcessing] = useState(null);
   const [cancelConfirm, setCancelConfirm] = useState(null);
   const [exportModalOpen, setExportModalOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [exportStatuses, setExportStatuses] = useState(() => new Set(["accepted", "rejected", "pending"]));
-  const [historyExportModalOpen, setHistoryExportModalOpen] = useState(false);
-  const [historyExporting, setHistoryExporting] = useState(false);
-  const [historyExportStatuses, setHistoryExportStatuses] = useState(() => new Set(["accepted"]));
+  const [exportStatuses, setExportStatuses] = useState(
+    () => new Set(["accepted", "rejected", "pending"])
+  );
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
 
@@ -132,10 +142,13 @@ export default function AdminApplicationsPage({ table }) {
     };
   }, [id, kind]);
 
-  const acceptedCount = applications.filter((app) => app.status === "accepted").length;
-  const statusFilteredCount = statusFilter === "all"
-    ? applications.length
-    : applications.filter((app) => app.status === statusFilter).length;
+  const acceptedCount = applications.filter(
+    (app) => app.status === "accepted"
+  ).length;
+  const statusFilteredCount =
+    statusFilter === "all"
+      ? applications.length
+      : applications.filter((app) => app.status === statusFilter).length;
   const filteredApplications = useMemo(() => {
     const keyword = query.trim().toLowerCase();
 
@@ -217,7 +230,6 @@ export default function AdminApplicationsPage({ table }) {
   }
 
   async function exportApplications() {
-    setExporting(true);
     const XLSX = await import("xlsx");
     const selectedStatuses = [...exportStatuses];
     const rows = applications
@@ -225,35 +237,37 @@ export default function AdminApplicationsPage({ table }) {
       .map((app) => [
         app.users?.name ?? "",
         applicantMemberLabel(app.users),
-        app.users?.workplace_or_school ?? "",
         app.users?.phone ?? "",
         app.users?.email ?? "",
+        app.users?.workplace_or_school ?? "",
+
         formatExportDate(app.created_at),
       ]);
 
     const worksheet = XLSX.utils.aoa_to_sheet([
       [`게시물: ${activity.title}`],
       [],
-      ["이름", "회원번호", "소속", "전화번호", "이메일", "신청 일시"],
+      ["이름", "회원번호",  "전화번호", "이메일","소속", "신청 일시"],
       ...rows,
     ]);
     worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
     worksheet["!cols"] = [
       { wch: 14 },
       { wch: 12 },
-      { wch: 24 },
       { wch: 16 },
       { wch: 28 },
+      { wch: 20 },
       { wch: 18 },
     ];
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "신청 현황");
-    const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    setExporting(false);
+    XLSX.writeFile(
+      workbook,
+      `${safeFilename(activity.title)}_신청현황_${formatFilenameDate(
+        new Date()
+      )}.xlsx`
+    );
     setExportModalOpen(false);
   }
 
@@ -308,32 +322,32 @@ export default function AdminApplicationsPage({ table }) {
               {selectedIds.size}명 선택
             </span>
             <div className="ml-auto flex flex-wrap gap-2">
-            <button
-              className="inline-flex min-h-[36px] cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-action-default px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
-              disabled={processing === "batch"}
-              type="button"
-              onClick={() => handleDecide([...selectedIds], "accepted")}
-            >
-              <CheckCheck size={16} />
-              수락
-            </button>
-            <button
-              className="inline-flex min-h-[36px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-600 hover:bg-red-100 disabled:cursor-progress disabled:opacity-65"
-              disabled={processing === "batch"}
-              type="button"
-              onClick={() => handleDecide([...selectedIds], "rejected")}
-            >
-              <X size={16} />
-              거절
-            </button>
-            <button
-              className="inline-flex min-h-[36px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border-default bg-white px-4 text-sm font-semibold text-text-secondary hover:bg-surface-subtle disabled:cursor-progress disabled:opacity-65"
-              disabled={processing === "batch"}
-              type="button"
-              onClick={() => openCancelConfirm([...selectedIds])}
-            >
-              신청 취소
-            </button>
+              <button
+                className="inline-flex min-h-[36px] cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-action-default px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
+                disabled={processing === "batch"}
+                type="button"
+                onClick={() => handleDecide([...selectedIds], "accepted")}
+              >
+                <CheckCheck size={16} />
+                수락
+              </button>
+              <button
+                className="inline-flex min-h-[36px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-600 hover:bg-red-100 disabled:cursor-progress disabled:opacity-65"
+                disabled={processing === "batch"}
+                type="button"
+                onClick={() => handleDecide([...selectedIds], "rejected")}
+              >
+                <X size={16} />
+                거절
+              </button>
+              <button
+                className="inline-flex min-h-[36px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border-default bg-white px-4 text-sm font-semibold text-text-secondary hover:bg-surface-subtle disabled:cursor-progress disabled:opacity-65"
+                disabled={processing === "batch"}
+                type="button"
+                onClick={() => openCancelConfirm([...selectedIds])}
+              >
+                신청 취소
+              </button>
             </div>
           </div>
         </div>
@@ -392,47 +406,55 @@ export default function AdminApplicationsPage({ table }) {
               >
                 <div className="grid gap-4">
                   <div className="flex items-start justify-between gap-3">
-                  <label className="flex cursor-pointer items-center gap-3">
-                    <input
-                      className="h-4 w-4"
-                      type="checkbox"
-                      checked={selectedIds.has(app.id)}
-                      onChange={() => toggleSelect(app.id)}
-                    />
-                    <div className="grid gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Link
-                          className="font-bold text-text-primary hover:underline"
-                          to={`/admin/members/${app.users?.id}/history`}
-                        >
-                          {app.users?.name ?? "-"}
-                        </Link>
-                        <span className={`rounded-lg px-2 py-1 text-xs font-semibold ${applicantMemberBadgeClass(app.users)}`}>
-                          {applicantMemberLabel(app.users)}
-                        </span>
+                    <label className="flex cursor-pointer items-center gap-3">
+                      <input
+                        className="h-4 w-4"
+                        type="checkbox"
+                        checked={selectedIds.has(app.id)}
+                        onChange={() => toggleSelect(app.id)}
+                      />
+                      <div className="grid gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link
+                            className="font-bold text-text-primary hover:underline"
+                            to={`/admin/members/${app.users?.id}/history`}
+                          >
+                            {app.users?.name ?? "-"}
+                          </Link>
+                          <span
+                            className={`rounded-lg px-2 py-1 text-xs font-semibold ${applicantMemberBadgeClass(
+                              app.users
+                            )}`}
+                          >
+                            {applicantMemberLabel(app.users)}
+                          </span>
+                        </div>
+                        <dl className="grid gap-1 text-sm text-text-secondary sm:grid-cols-2">
+                          <div className="grid gap-0.5">
+                            <dd className="m-0 text-text-secondary">
+                              전화번호: {app.users?.phone ?? "-"}
+                            </dd>
+                          </div>
+                          <div className="grid gap-0.5">
+                            <dd className="m-0 break-all text-text-secondary">
+                              이메일: {app.users?.email ?? "-"}
+                            </dd>
+                          </div>
+                          <div className="grid gap-0.5 sm:col-span-2">
+                            <dd className="m-0 text-text-secondary">
+                              소속: {app.users?.workplace_or_school ?? "-"}
+                            </dd>
+                          </div>
+                        </dl>
                       </div>
-                      <dl className="grid gap-1 text-sm text-text-secondary sm:grid-cols-2">
-                        <div className="grid gap-0.5">
-                          <dd className="m-0 text-text-secondary">
-                            전화번호: {app.users?.phone ?? "-"}
-                          </dd>
-                        </div>
-                        <div className="grid gap-0.5">
-                          <dd className="m-0 break-all text-text-secondary">
-                            이메일: {app.users?.email ?? "-"}
-                          </dd>
-                        </div>
-                        <div className="grid gap-0.5 sm:col-span-2">
-                          <dd className="m-0 text-text-secondary">
-                            소속: {app.users?.workplace_or_school ?? "-"}
-                          </dd>
-                        </div>
-                      </dl>
-                    </div>
-                  </label>
-                  <span className={`shrink-0 rounded-xl border px-3 py-1.5 text-sm font-bold ${statusBadgeClass(app.status)}`}>
-                    {statusLabel[app.status]}
-                  </span>
+                    </label>
+                    <span
+                      className={`shrink-0 rounded-xl border px-3 py-1.5 text-sm font-bold ${statusBadgeClass(
+                        app.status
+                      )}`}
+                    >
+                      {statusLabel[app.status]}
+                    </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2.5 pl-7">
                     <button
@@ -482,7 +504,8 @@ export default function AdminApplicationsPage({ table }) {
               선택한 신청을 취소할까요?
             </h2>
             <p className="mt-2 text-sm text-text-secondary">
-              {cancelConfirm.applicationIds.length}건의 신청 상태가 취소됨으로 변경됩니다.
+              {cancelConfirm.applicationIds.length}건의 신청 상태가 취소됨으로
+              변경됩니다.
             </p>
             <div className="mt-5 flex gap-2.5">
               <button
@@ -544,11 +567,11 @@ export default function AdminApplicationsPage({ table }) {
             <div className="mt-5 flex gap-2.5">
               <button
                 className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={exportStatuses.size === 0 || exporting}
+                disabled={exportStatuses.size === 0}
                 type="button"
                 onClick={exportApplications}
               >
-                {exporting ? "추출 중..." : "추출"}
+                추출
               </button>
               <button
                 className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"

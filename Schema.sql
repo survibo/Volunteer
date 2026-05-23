@@ -164,6 +164,7 @@ create table if not exists public.volunteer_activities (
     check (capacity > 0),
   constraint volunteer_activities_schedule_check
     check (application_deadline <= starts_at and starts_at < ends_at),
+  chat_link          text,                                                  -- 오픈채팅방 링크 (수락된 신청자에게만 표시)
   constraint volunteer_activities_image_path_check
     check (
       image_path is null
@@ -260,6 +261,7 @@ create table if not exists public.educations (
   capacity             integer     not null,    -- 정원 초과 신청 허용; 관리자 판단용 값
   created_by           uuid        references public.users(id) on delete set null,
   updated_by           uuid        references public.users(id) on delete set null,
+  chat_link            text,                                                  -- 오픈채팅방 링크 (수락된 신청자에게만 표시)
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now(),
   constraint educations_capacity_check

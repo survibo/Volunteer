@@ -246,6 +246,16 @@ export default function ActivityDetailPage({ table, profile }) {
               {statusLabel[application.status]}
             </span>
           </p>
+          {application.status === "accepted" && activity.chat_link && (
+            <a
+              className="mt-4 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover"
+              href={activity.chat_link}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              오픈채팅방 입장
+            </a>
+          )}
           {myPendingApp && !deadlinePassed && (
             <button
               className="mt-4 min-h-[44px] cursor-pointer rounded-xl bg-status-error-bg px-5 font-semibold text-status-error-text hover:opacity-80 disabled:cursor-progress disabled:opacity-65"

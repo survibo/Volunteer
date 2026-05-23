@@ -33,6 +33,7 @@ const emptyForm = {
   starts_at: '',
   ends_at: '',
   capacity: '',
+  chat_link: '',
 }
 
 function buildInitial(initialData) {
@@ -45,6 +46,7 @@ function buildInitial(initialData) {
     starts_at: toDateOnly(initialData.starts_at),
     ends_at: toDateOnly(initialData.ends_at),
     capacity: String(initialData.capacity ?? ''),
+    chat_link: initialData.chat_link ?? '',
   }
 }
 
@@ -170,6 +172,7 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
       starts_at: new Date(form.starts_at).toISOString(),
       ends_at: new Date(form.ends_at).toISOString(),
       capacity,
+      chat_link: form.chat_link.trim() || null,
     }
 
     let error
@@ -308,6 +311,19 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
           />
         </label>
 
+        <label className="grid gap-2 text-xs font-semibold text-text-secondary">
+          오픈채팅방 링크
+          <input
+            className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+            name="chat_link"
+            value={form.chat_link}
+            onChange={updateField}
+            placeholder="https://open.kakao.com/..."
+          />
+        </label>
+        <span className="text-xs text-text-tertiary md:col-span-2">
+          수락된 신청자에게만 표시됩니다. 선택사항입니다.
+        </span>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
           신청 마감일
           <input
