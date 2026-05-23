@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
 import AppFrame from './components/AppFrame'
+import ReloadPrompt from './components/ReloadPrompt'
 import TopLoadingBar from './components/TopLoadingBar'
 import { getCurrentProfile, getHomePath } from './lib/auth'
 import ActivityDetailPage from './pages/activity/ActivityDetailPage'
@@ -132,6 +133,7 @@ function ErrorScreen({ message }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <ReloadPrompt />
       <Routes>
         <Route
           path="/"

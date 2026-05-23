@@ -14,13 +14,16 @@ export default defineConfig({
       manifest: {
         name: "Volunteer",
         short_name: "Volunteer",
-        description: "Volunteer activity and education management app",
-        theme_color: "#ffffff",
+        description: "봉사활동과 교육 신청을 관리하는 앱",
+        theme_color: "#3b82f6",
         background_color: "#f1f2f5",
         display: "standalone",
+        display_override: ["window-controls-overlay", "standalone"],
         orientation: "portrait",
         start_url: "/",
         scope: "/",
+        lang: "ko",
+        categories: ["education", "community"],
         icons: [
           {
             src: "/pwa-192x192.png",
@@ -49,10 +52,12 @@ export default defineConfig({
       workbox: {
         cleanupOutdatedCaches: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
+        navigateFallback: "/",
         navigateFallbackDenylist: [/^\/api\//, /^\/auth\//],
       },
       devOptions: {
-        enabled: false,
+        enabled: true,
+        type: "module",
       },
     }),
   ],
