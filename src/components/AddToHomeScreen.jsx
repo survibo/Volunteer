@@ -35,7 +35,7 @@ export default function AddToHomeScreen() {
   useEffect(() => {
     if (dismissed || isStandalone()) return;
 
-    const timer = setTimeout(() => setShow(true), 3000);
+    const timer = setTimeout(() => setShow(true), 1500);
     return () => clearTimeout(timer);
   }, [dismissed]);
 
