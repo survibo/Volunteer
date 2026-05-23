@@ -38,13 +38,6 @@ function applicantMemberLabel(user) {
   return "준회원";
 }
 
-function applicantMemberBadgeClass(user) {
-  if (user?.role === "member" && user.member_number) {
-    return "bg-blue-50 text-blue-700 ring-1 ring-blue-100";
-  }
-
-  return "bg-slate-100 text-slate-600 ring-1 ring-slate-200";
-}
 
 function statusBadgeClass(status) {
   if (status === "accepted") {
@@ -258,8 +251,8 @@ export default function AdminApplicationsPage({ table }) {
         "전화번호",
         "이메일",
         "소속",
-        "exp_vol",
-        "exp_edu",
+        "봉사활동 이력",
+        "교육이수 이력",
         "완료된 활동 제목",
       ],
       ...rows,
@@ -439,10 +432,8 @@ export default function AdminApplicationsPage({ table }) {
                             {app.users?.name ?? "-"}
                           </Link>
                           <span
-                            className={`rounded-lg px-2 py-1 text-xs font-semibold ${applicantMemberBadgeClass(
-                              app.users
-                            )}`}
-                          >
+                            className="rounded-lg px-2 py-1 text-xs font-semibold bg-slate-100 text-slate-600 ring-1 ring-slate-200}
+                          ">
                             {applicantMemberLabel(app.users)}
                           </span>
                         </div>
