@@ -15,6 +15,7 @@ import CreateEducationPage from './pages/admin/CreateEducationPage'
 import CreateVolunteerPage from './pages/admin/CreateVolunteerPage'
 import EducationPage from './pages/activity/EducationPage'
 import LoginPage from './pages/auth/LoginPage'
+import MyHistoryPage from './pages/mypage/MyHistoryPage'
 import MyPage from './pages/mypage/MyPage'
 import MyPageEditPage from './pages/mypage/MyPageEditPage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -160,6 +161,10 @@ export default function App() {
         <Route
           path="/education/:id"
           element={<ProtectedRoute>{(profile) => <ActivityDetailPage table="educations" profile={profile} />}</ProtectedRoute>}
+        />
+        <Route
+          path="/mylist"
+          element={<ProtectedRoute>{(profile) => <MyHistoryPage profile={profile} />}</ProtectedRoute>}
         />
         <Route
           path="/mypage"

@@ -110,7 +110,7 @@ export default function RegisterPage() {
       <section className="m-auto w-full max-w-[720px] rounded-xl border border-border-default bg-surface-base p-6 md:p-8">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">가입 정보</p>
         <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
-          준회원 등록
+          회원 가입
         </h1>
         <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">

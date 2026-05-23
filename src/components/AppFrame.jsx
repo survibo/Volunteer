@@ -3,7 +3,8 @@ import { Link, useLocation } from "react-router";
 const navItems = [
   { to: "/volunteer", label: "봉사활동" },
   { to: "/education", label: "교육" },
-  { to: "/mypage", label: "마이페이지" },
+  { to: "/mylist", label: "활동 내역" },
+  { to: "/mypage", label: "내 정보" },
 ];
 
 const adminNavItem = { to: "/admin", label: "관리자" };

@@ -6,9 +6,9 @@ import { deadlineDdayText, formatDateTime } from "../lib/dateUtils";
 import TopLoadingBar from "./TopLoadingBar";
 
 const filterOptions = [
-  { value: "recruiting", label: "현재 모집중" },
-  { value: "ongoing", label: "현재 진행중" },
-  { value: "completed", label: "끝난 봉사활동" },
+  { value: "recruiting", label: "모집중" },
+  { value: "ongoing", label: "진행중" },
+  { value: "completed", label: "종료" },
 ];
 
 function categorize(activities) {

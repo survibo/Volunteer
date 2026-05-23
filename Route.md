@@ -22,6 +22,10 @@
 /mypage/education          # 내 교육 신청 내역
 /mypage/withdraw           # 회원 탈퇴
 
+### 활동 내역
+/mylist          # 신청 & 과거 활동 내역
+
+
 ## Admin Routes (관리자 전용, /admin 하위)
 
 ### 회원 관리

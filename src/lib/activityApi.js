@@ -210,6 +210,34 @@ export async function listApplications(kind, activityId) {
   return data ?? []
 }
 
+export async function listMyApplications(userId) {
+  const kinds = ['volunteer', 'education']
+  const results = []
+
+  for (const kind of kinds) {
+    const cfg = getActivityConfig(kind)
+    const { data, error } = await supabase
+      .from(cfg.applicationTable)
+      .select(`*, ${cfg.table}!inner(id, title, starts_at, ends_at, location)`)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    throwIfError(error)
+
+    for (const app of data ?? []) {
+      results.push({
+        ...app,
+        kind,
+        _activity: app[cfg.table],
+        detailPath: kind === 'volunteer' ? '/volunteer' : '/education',
+      })
+    }
+  }
+
+  results.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  return results
+}
+
 export async function decideApplications(kind, applicationIds, nextStatus) {
   const cfg = getActivityConfig(kind)
 

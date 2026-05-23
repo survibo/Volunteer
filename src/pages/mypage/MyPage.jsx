@@ -27,7 +27,7 @@ export default function MyPage({ profile }) {
       <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">
-            마이페이지
+            내 정보
           </p>
           <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
             {profile.name}
