@@ -27,7 +27,8 @@ export default function PendingPage({ profile }) {
         가입비 확인 후 관리자가 회원번호를 부여합니다.
       </p>
       <p className="text-sm text-text-secondary">
-        아래 계좌로 가입비를 입금해 주세요.
+        아래 계좌로 가입비(6만원)를 입금해 주세요.<br/>
+        MOU 기관은 50% 할인(3만원)입니다.
       </p>
       <div className="flex flex-wrap gap-2.5">
         <button
