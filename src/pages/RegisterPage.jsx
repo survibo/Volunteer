@@ -95,51 +95,51 @@ export default function RegisterPage() {
       return
     }
 
-    navigate('/pending', { replace: true })
+    navigate('/volunteer', { replace: true })
   }
 
   if (loading) {
     return (
-      <main className="grid min-h-screen place-items-center px-4 py-8 md:p-6">
-        <section className="w-full max-w-[380px] rounded-[var(--radius-lg)] border border-white/70 bg-[var(--surface)] p-6 shadow-[var(--shadow-md)] ring-1 ring-white/60 backdrop-blur-xl md:p-8">
-          <p className="text-base leading-relaxed text-[var(--text-secondary)]">가입 정보를 확인하고 있습니다.</p>
+      <main className="flex min-h-full flex-col overflow-y-auto px-4 py-8 md:p-6">
+        <section className="m-auto w-full max-w-[380px] rounded-xl border border-border-default bg-surface-base p-6 md:p-8">
+          <p className="text-sm text-text-secondary">가입 정보를 확인하고 있습니다.</p>
         </section>
       </main>
     )
   }
 
   return (
-    <main className="grid min-h-screen place-items-center px-4 py-8 md:p-6">
-      <section className="w-full max-w-[720px] rounded-[var(--radius-lg)] border border-white/70 bg-[var(--surface)] p-6 shadow-[var(--shadow-md)] ring-1 ring-white/60 backdrop-blur-xl md:p-8">
-        <p className="mb-2.5 text-[13px] font-extrabold text-[var(--accent-dark)]">가입 정보</p>
-        <h1 className="text-[30px] font-black leading-[1.06] tracking-normal text-[var(--text-primary)] md:text-[48px]">
+    <main className="flex min-h-full flex-col overflow-y-auto px-4 py-8 md:p-6">
+      <section className="m-auto w-full max-w-[720px] rounded-xl border border-border-default bg-surface-base p-6 md:p-8">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">가입 정보</p>
+        <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
           준회원 등록
         </h1>
         <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
-          <label className="grid gap-2 text-[13px] font-bold text-[var(--text-secondary)]">
+          <label className="grid gap-2 text-xs font-semibold text-text-secondary">
             이름
             <input
-              className="min-h-11 w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-inset)] px-3 text-[var(--text-primary)] shadow-inner"
+              className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="name"
               required
               value={form.name}
               onChange={updateField}
             />
           </label>
-          <label className="grid gap-2 text-[13px] font-bold text-[var(--text-secondary)]">
+          <label className="grid gap-2 text-xs font-semibold text-text-secondary">
             연락처
             <input
-              className="min-h-11 w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-inset)] px-3 text-[var(--text-primary)] shadow-inner"
+              className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="phone"
               required
               value={form.phone}
               onChange={updateField}
             />
           </label>
-          <label className="grid gap-2 text-[13px] font-bold text-[var(--text-secondary)]">
+          <label className="grid gap-2 text-xs font-semibold text-text-secondary">
             이메일
             <input
-              className="min-h-11 w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-inset)] px-3 text-[var(--text-primary)] shadow-inner"
+              className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="email"
               required
               type="email"
@@ -147,38 +147,38 @@ export default function RegisterPage() {
               onChange={updateField}
             />
           </label>
-          <label className="grid gap-2 text-[13px] font-bold text-[var(--text-secondary)]">
+          <label className="grid gap-2 text-xs font-semibold text-text-secondary">
             주소
             <input
-              className="min-h-11 w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-inset)] px-3 text-[var(--text-primary)] shadow-inner"
+              className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="address"
               required
               value={form.address}
               onChange={updateField}
             />
           </label>
-          <label className="grid gap-2 text-[13px] font-bold text-[var(--text-secondary)]">
+          <label className="grid gap-2 text-xs font-semibold text-text-secondary">
             근무지 or 학교명
             <input
-              className="min-h-11 w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-inset)] px-3 text-[var(--text-primary)] shadow-inner"
+              className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="workplace_or_school"
               required
               value={form.workplace_or_school}
               onChange={updateField}
             />
           </label>
-          <label className="grid gap-2 text-[13px] font-bold text-[var(--text-secondary)]">
+          <label className="grid gap-2 text-xs font-semibold text-text-secondary">
             면허번호
             <input
-              className="min-h-11 w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-inset)] px-3 text-[var(--text-primary)] shadow-inner"
+              className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="license_number"
               value={form.license_number}
               onChange={updateField}
             />
           </label>
-          {errorMessage && <p className="col-span-full mt-3.5 text-sm leading-normal text-[var(--red)]">{errorMessage}</p>}
+          {errorMessage && <p className="col-span-full mt-3.5 text-sm leading-normal text-status-error-text">{errorMessage}</p>}
           <button
-            className="col-span-full min-h-[44px] cursor-pointer rounded-[var(--radius-pill)] bg-[var(--accent-dark)] px-5 font-extrabold text-white shadow-[0_12px_26px_rgba(22,101,52,0.22)] hover:bg-[#14532d] disabled:cursor-progress disabled:opacity-65"
+            className="col-span-full min-h-[44px] cursor-pointer rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
             disabled={saving}
             type="submit"
           >

@@ -4,6 +4,8 @@ import AppFrame from './components/AppFrame'
 import { getCurrentProfile, getHomePath } from './lib/auth'
 import AdminPage from './pages/AdminPage'
 import AuthCallbackPage from './pages/AuthCallbackPage'
+import CreateEducationPage from './pages/admin/CreateEducationPage'
+import CreateVolunteerPage from './pages/admin/CreateVolunteerPage'
 import EducationPage from './pages/EducationPage'
 import LoginPage from './pages/LoginPage'
 import MyPage from './pages/MyPage'
@@ -106,9 +108,9 @@ function ProtectedRoute({ adminOnly = false, children }) {
 
 function LoadingScreen() {
   return (
-    <main className="grid min-h-screen place-items-center px-4 py-8 md:p-6">
-      <section className="w-full max-w-[380px] rounded-[var(--radius-lg)] border border-white/70 bg-[var(--surface)] p-6 shadow-[var(--shadow-md)] ring-1 ring-white/60 backdrop-blur-xl md:p-8">
-        <p className="text-base leading-relaxed text-[var(--text-secondary)]">불러오는 중입니다.</p>
+    <main className="flex min-h-full flex-col overflow-y-auto px-4 py-8 md:p-6">
+      <section className="m-auto w-full max-w-[380px] rounded-xl border border-border-default bg-surface-base p-6 md:p-8">
+        <p className="text-sm text-text-secondary">불러오는 중입니다.</p>
       </section>
     </main>
   )
@@ -116,13 +118,13 @@ function LoadingScreen() {
 
 function ErrorScreen({ message }) {
   return (
-    <main className="grid min-h-screen place-items-center px-4 py-8 md:p-6">
-      <section className="w-full max-w-[380px] rounded-[var(--radius-lg)] border border-white/70 bg-[var(--surface)] p-6 shadow-[var(--shadow-md)] ring-1 ring-white/60 backdrop-blur-xl md:p-8">
-        <p className="mb-2.5 text-[13px] font-extrabold text-[var(--accent-dark)]">오류</p>
-        <h1 className="text-[28px] font-extrabold leading-[1.08] tracking-normal text-[var(--text-primary)] md:text-[44px]">
+    <main className="flex min-h-full flex-col overflow-y-auto px-4 py-8 md:p-6">
+      <section className="m-auto w-full max-w-[380px] rounded-xl border border-border-default bg-surface-base p-6 md:p-8">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">오류</p>
+        <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
           처리할 수 없습니다.
         </h1>
-        <p className="mt-3.5 text-sm leading-normal text-[var(--red)]">{message}</p>
+        <p className="mt-4 text-sm text-status-error-text">{message}</p>
       </section>
     </main>
   )
@@ -148,11 +150,11 @@ export default function App() {
         />
         <Route
           path="/volunteer"
-          element={<ProtectedRoute>{() => <VolunteerPage />}</ProtectedRoute>}
+          element={<ProtectedRoute>{(profile) => <VolunteerPage profile={profile} />}</ProtectedRoute>}
         />
         <Route
           path="/education"
-          element={<ProtectedRoute>{() => <EducationPage />}</ProtectedRoute>}
+          element={<ProtectedRoute>{(profile) => <EducationPage profile={profile} />}</ProtectedRoute>}
         />
         <Route
           path="/mypage"
@@ -165,6 +167,14 @@ export default function App() {
         <Route
           path="/admin"
           element={<ProtectedRoute adminOnly>{() => <AdminPage />}</ProtectedRoute>}
+        />
+        <Route
+          path="/admin/volunteer/new"
+          element={<ProtectedRoute adminOnly>{(profile) => <CreateVolunteerPage profile={profile} />}</ProtectedRoute>}
+        />
+        <Route
+          path="/admin/education/new"
+          element={<ProtectedRoute adminOnly>{(profile) => <CreateEducationPage profile={profile} />}</ProtectedRoute>}
         />
         <Route
           path="*"

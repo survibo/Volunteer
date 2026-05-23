@@ -16,7 +16,7 @@
 /education/:id             # 교육 상세 + 신청
 
 ### 마이페이지
-/mypage                    # 마이페이지 홈 (프로필 + 회원번호)
+/mypage                    # 마이페이지 홈
 /mypage/volunteer          # 내 봉사활동 신청 내역
 /mypage/education          # 내 교육 신청 내역
 /mypage/withdraw           # 회원 탈퇴

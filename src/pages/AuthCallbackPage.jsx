@@ -48,13 +48,13 @@ export default function AuthCallbackPage() {
   }, [navigate])
 
   return (
-    <main className="grid min-h-screen place-items-center px-4 py-8 md:p-6">
-      <section className="w-full max-w-[380px] rounded-[var(--radius-lg)] border border-white/70 bg-[var(--surface)] p-6 shadow-[var(--shadow-md)] ring-1 ring-white/60 backdrop-blur-xl md:p-8">
-        <p className="mb-2.5 text-[13px] font-extrabold text-[var(--accent-dark)]">OAuth</p>
-        <h1 className="text-[30px] font-black leading-[1.06] tracking-normal text-[var(--text-primary)] md:text-[48px]">
+    <main className="flex min-h-full flex-col overflow-y-auto px-4 py-8 md:p-6">
+      <section className="m-auto w-full max-w-[380px] rounded-xl border border-border-default bg-surface-base p-6 md:p-8">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">OAuth</p>
+        <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
           처리 중
         </h1>
-        <p className="mt-4 text-base leading-relaxed text-[var(--text-secondary)]">{message}</p>
+        <p className="mt-4 text-sm text-text-secondary">{message}</p>
       </section>
     </main>
   )

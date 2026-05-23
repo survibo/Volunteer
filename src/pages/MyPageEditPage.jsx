@@ -5,8 +5,10 @@ import { supabase } from '../lib/supabase'
 export default function MyPageEditPage({ profile }) {
   const navigate = useNavigate()
   const [form, setForm] = useState({
+    name: profile.name ?? '',
     phone: profile.phone ?? '',
     email: profile.email ?? '',
+    workplace_or_school: profile.workplace_or_school ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -21,21 +23,23 @@ export default function MyPageEditPage({ profile }) {
     setSaving(true)
     setErrorMessage('')
 
+    const name = form.name.trim()
     const phone = form.phone.trim()
     const email = form.email.trim()
+    const workplace_or_school = form.workplace_or_school.trim()
 
-    if (!phone || !email) {
+    if (!name || !phone || !email) {
       setSaving(false)
-      setErrorMessage('연락처와 이메일을 모두 입력해 주세요.')
+      setErrorMessage('이름, 연락처, 이메일을 모두 입력해 주세요.')
       return
     }
 
     const { error } = await supabase.rpc('update_own_profile', {
-      new_name: profile.name,
+      new_name: name,
       new_phone: phone,
       new_email: email,
       new_address: profile.address,
-      new_workplace_or_school: profile.workplace_or_school,
+      new_workplace_or_school: workplace_or_school,
       new_license_number: profile.license_number,
     })
 
@@ -50,32 +54,42 @@ export default function MyPageEditPage({ profile }) {
   }
 
   return (
-    <section className="grid gap-[18px]">
+    <section className="grid gap-6">
       <div>
-        <p className="mb-2.5 text-[13px] font-extrabold text-[var(--accent-dark)]">마이페이지</p>
-        <h1 className="text-[30px] font-black leading-[1.06] tracking-normal text-[var(--text-primary)] md:text-[48px]">
-          연락처/이메일 수정
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">마이페이지</p>
+        <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
+          프로필 수정
         </h1>
       </div>
 
       <form
-        className="grid gap-4 rounded-[var(--radius-lg)] border border-white/70 bg-[var(--surface)] p-6 shadow-[var(--shadow-md)] ring-1 ring-white/60 backdrop-blur-xl"
+        className="grid gap-4 rounded-xl border border-border-default bg-surface-base p-6"
         onSubmit={handleSubmit}
       >
-        <label className="grid gap-2 text-[13px] font-bold text-[var(--text-secondary)]">
+        <label className="grid gap-2 text-xs font-semibold text-text-secondary">
+          이름
+          <input
+            className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+            name="name"
+            required
+            value={form.name}
+            onChange={updateField}
+          />
+        </label>
+        <label className="grid gap-2 text-xs font-semibold text-text-secondary">
           연락처
           <input
-            className="min-h-11 w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-inset)] px-3 text-[var(--text-primary)] shadow-inner"
+            className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
             name="phone"
             required
             value={form.phone}
             onChange={updateField}
           />
         </label>
-        <label className="grid gap-2 text-[13px] font-bold text-[var(--text-secondary)]">
+        <label className="grid gap-2 text-xs font-semibold text-text-secondary">
           이메일
           <input
-            className="min-h-11 w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-inset)] px-3 text-[var(--text-primary)] shadow-inner"
+            className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
             name="email"
             required
             type="email"
@@ -83,19 +97,28 @@ export default function MyPageEditPage({ profile }) {
             onChange={updateField}
           />
         </label>
+        <label className="grid gap-2 text-xs font-semibold text-text-secondary">
+          근무지 또는 학교
+          <input
+            className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+            name="workplace_or_school"
+            value={form.workplace_or_school}
+            onChange={updateField}
+          />
+        </label>
 
-        {errorMessage && <p className="text-sm leading-normal text-[var(--red)]">{errorMessage}</p>}
+        {errorMessage && <p className="text-sm leading-normal text-status-error-text">{errorMessage}</p>}
 
         <div className="flex flex-wrap gap-2.5">
           <button
-            className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-[var(--radius-pill)] bg-[var(--accent-dark)] px-5 font-extrabold text-white shadow-[0_12px_26px_rgba(22,101,52,0.22)] hover:bg-[#14532d] disabled:cursor-progress disabled:opacity-65 sm:w-auto"
+            className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65 sm:w-auto"
             disabled={saving}
             type="submit"
           >
             {saving ? '저장 중' : '저장'}
           </button>
           <Link
-            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-[var(--radius-pill)] border border-[var(--border)] bg-white/70 px-5 font-extrabold text-[var(--text-primary)] hover:border-[var(--border-strong)] sm:w-auto"
+            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle sm:w-auto"
             to="/mypage"
           >
             취소
