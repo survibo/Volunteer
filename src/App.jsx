@@ -20,6 +20,7 @@ import MyHistoryPage from './pages/mypage/MyHistoryPage'
 import MyPage from './pages/mypage/MyPage'
 import MyPageEditPage from './pages/mypage/MyPageEditPage'
 import NotFoundPage from './pages/NotFoundPage'
+import PendingPage from './pages/PendingPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import VolunteerPage from './pages/activity/VolunteerPage'
 
@@ -186,6 +187,10 @@ export default function App() {
         <Route
           path="/mypage/withdraw"
           element={<ProtectedRoute>{() => <ComingSoonPage />}</ProtectedRoute>}
+        />
+        <Route
+          path="/pending"
+          element={<ProtectedRoute>{(profile) => <PendingPage profile={profile} />}</ProtectedRoute>}
         />
         <Route
           path="/admin"

@@ -115,7 +115,7 @@ export default function RegisterPage() {
 
     try {
       await createPendingProfile(payload)
-      navigate('/volunteer', { replace: true })
+      navigate(getHomePath({ role: 'pending' }), { replace: true })
     } catch (error) {
       setErrorMessage(error.message)
     } finally {
@@ -125,7 +125,7 @@ export default function RegisterPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-full flex-col overflow-y-auto px-4 py-8 md:p-6">
+      <main className="flex h-screen flex-col overflow-y-auto px-4 py-8 md:p-6">
         <section className="m-auto w-full max-w-[380px] rounded-xl border border-border-default bg-surface-base p-6 md:p-8">
           <p className="text-sm text-text-secondary">가입 정보를 확인하고 있습니다.</p>
         </section>
@@ -134,7 +134,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-full flex-col overflow-y-auto px-4 py-8 md:p-6">
+    <main className="flex h-screen flex-col overflow-y-auto px-4 py-8 md:p-6">
       <section className="m-auto w-full max-w-[720px] rounded-xl border border-border-default bg-surface-base p-6 md:p-8">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">가입 정보</p>
         <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">

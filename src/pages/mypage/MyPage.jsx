@@ -65,6 +65,14 @@ export default function MyPage({ profile }) {
               {pdfLoading ? "로딩 중" : "회원증"}
             </button>
           )}
+          {profile.role === "pending" && (
+            <Link
+              className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-border-default bg-white px-5 font-semibold text-text-primary hover:bg-surface-subtle sm:w-auto"
+              to="/pending"
+            >
+              회원 가입
+            </Link>
+          )}
           <Link
             className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover sm:w-auto"
             to="/mypage/edit"

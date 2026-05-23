@@ -467,7 +467,8 @@ grant execute on function private.is_admin() to authenticated;
 -- 권한이 중요한 상태 전이는 클라이언트의 직접 update 대신 함수로 처리한다.
 -- =============================================================================
 
-create or replace function public.approve_member(target_user_id uuid, member_number text)
+drop function if exists public.approve_member(uuid, text);
+create function public.approve_member(target_user_id uuid, new_member_number text)
 returns text
 language plpgsql
 security definer
@@ -480,15 +481,15 @@ begin
     raise exception 'admin permission required';
   end if;
 
-  if member_number is null or member_number = '' then
+  if new_member_number is null or new_member_number = '' then
     raise exception 'member_number is required';
   end if;
 
-  if member_number !~ '^\d{2}-\d{4}$' then
+  if new_member_number !~ '^\d{2}-\d{4}$' then
     raise exception 'member_number must be in YY-NNNN format';
   end if;
 
-  if exists (select 1 from public.users where member_number = member_number and id != target_user_id) then
+  if exists (select 1 from public.users where member_number = new_member_number and id != target_user_id) then
     raise exception 'member number already in use';
   end if;
 
@@ -505,7 +506,7 @@ begin
 
   update public.users
   set role = 'member',
-      member_number = member_number,
+      member_number = new_member_number,
       approved_at = now(),
       approved_by = (select auth.uid())
   where id = target_user_id
@@ -515,11 +516,12 @@ begin
     raise exception 'target user approval failed';
   end if;
 
-  return member_number;
+  return new_member_number;
 end;
 $$;
 
-create or replace function public.grant_admin(target_user_id uuid, member_number text default null)
+drop function if exists public.grant_admin(uuid, text);
+create function public.grant_admin(target_user_id uuid, new_member_number text default null)
 returns text
 language plpgsql
 security definer
@@ -556,21 +558,21 @@ begin
     return target_profile.member_number;
   end if;
 
-  if member_number is null or member_number = '' then
+  if new_member_number is null or new_member_number = '' then
     raise exception 'member_number is required for pending users';
   end if;
 
-  if member_number !~ '^\d{2}-\d{4}$' then
+  if new_member_number !~ '^\d{2}-\d{4}$' then
     raise exception 'member_number must be in YY-NNNN format';
   end if;
 
-  if exists (select 1 from public.users where member_number = member_number and id != target_user_id) then
+  if exists (select 1 from public.users where users.member_number = new_member_number and id != target_user_id) then
     raise exception 'member number already in use';
   end if;
 
   update public.users
   set role = 'admin',
-      member_number = member_number,
+      member_number = new_member_number,
       approved_at = now(),
       approved_by = (select auth.uid())
   where id = target_user_id
@@ -580,7 +582,7 @@ begin
     raise exception 'target user admin grant failed';
   end if;
 
-  return member_number;
+  return new_member_number;
 end;
 $$;
 

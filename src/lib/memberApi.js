@@ -34,7 +34,7 @@ export async function getMember(id) {
 export async function approveMember(id, memberNumber) {
   const { error } = await supabase.rpc('approve_member', {
     target_user_id: id,
-    member_number: memberNumber,
+    new_member_number: memberNumber,
   })
 
   throwIfError(error)
@@ -62,7 +62,7 @@ export async function cancelMemberApproval(id) {
 export async function grantAdmin(id, memberNumber) {
   const { error } = await supabase.rpc('grant_admin', {
     target_user_id: id,
-    member_number: memberNumber,
+    new_member_number: memberNumber,
   })
 
   throwIfError(error)
