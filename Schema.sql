@@ -107,6 +107,10 @@ create table if not exists public.users (
 create index if not exists users_role_idx on public.users(role);
 create unique index if not exists users_email_unique_idx on public.users(email);
 
+alter table public.users
+  add column if not exists volunteer_experience text,
+  add column if not exists education_experience text;
+
 
 
 
@@ -138,6 +142,10 @@ create table if not exists public.withdrawn_users (
 
 create index if not exists withdrawn_users_withdrawn_at_idx on public.withdrawn_users(withdrawn_at desc);
 create index if not exists withdrawn_users_email_idx        on public.withdrawn_users(email);
+
+alter table public.withdrawn_users
+  add column if not exists volunteer_experience text,
+  add column if not exists education_experience text;
 
 
 -- =============================================================================
@@ -594,6 +602,7 @@ $$;
 
 drop function if exists public.update_own_profile(text, text, text, text, text, text, text);
 drop function if exists public.update_own_profile(text, text, text, text, text, text, text, text);
+drop function if exists public.update_own_profile(text, text, text, text, text, text, text, text, text);
 create function public.update_own_profile(
   new_name text,
   new_phone text,
