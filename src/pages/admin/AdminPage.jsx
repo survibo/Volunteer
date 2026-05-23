@@ -9,22 +9,22 @@ function memberNumberText(member) {
 }
 
 const exportRoleOptions = [
-  { value: "member", label: "회원" },
-  { value: "pending", label: "비회원" },
+  { value: "member", label: "정회원" },
+  { value: "pending", label: "준회원" },
   { value: "admin", label: "관리자" },
 ];
 
 const filterRoleOptions = [
   { value: "all", label: "전체" },
-  { value: "pending", label: "비회원" },
-  { value: "member", label: "회원" },
+  { value: "pending", label: "준회원" },
+  { value: "member", label: "정회원" },
   { value: "admin", label: "관리자" },
 ];
 
 function roleLabel(role) {
   if (role === "admin") return "관리자";
-  if (role === "member") return "회원";
-  return "비회원";
+  if (role === "member") return "정회원";
+  return "준회원";
 }
 
 function formatExportDate(iso) {
@@ -38,15 +38,6 @@ function formatExportDate(iso) {
   return `${y}-${m}-${d} ${hh}:${mm}`;
 }
 
-function formatFilenameDate(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
-  return `${y}${m}${d}_${hh}${mm}`;
-}
-
 export default function AdminPage() {
   const [members, setMembers] = useState([]);
   const [query, setQuery] = useState("");
@@ -54,6 +45,7 @@ export default function AdminPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportRoles, setExportRoles] = useState(() => new Set(["member", "pending", "admin"]));
+  const [exporting, setExporting] = useState(false);
   const [roleFilter, setRoleFilter] = useState("all");
 
   useEffect(() => {
@@ -119,6 +111,7 @@ export default function AdminPage() {
   }
 
   async function exportMembers() {
+    setExporting(true);
     const XLSX = await import("xlsx");
     const selectedRoles = [...exportRoles];
     const rows = members
@@ -156,7 +149,11 @@ export default function AdminPage() {
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "사용자 목록");
-    XLSX.writeFile(workbook, `전체사용자목록_${formatFilenameDate(new Date())}.xlsx`);
+    const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setExporting(false);
     setExportModalOpen(false);
   }
 
@@ -275,11 +272,11 @@ export default function AdminPage() {
             <div className="mt-5 flex gap-2.5">
               <button
                 className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={exportRoles.size === 0}
+                disabled={exportRoles.size === 0 || exporting}
                 type="button"
                 onClick={exportMembers}
               >
-                추출
+                {exporting ? "추출 중..." : "추출"}
               </button>
               <button
                 className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"

@@ -167,7 +167,7 @@ export default function ActivityDetailPage({ table, profile }) {
               }}
             >
               <LinkIcon size={16} />
-              {linkCopied ? "복사됨" : "링크 복사"}
+              {linkCopied ? "복사됨" : "링크"}
             </button>
           </div>
         )}

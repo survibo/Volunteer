@@ -24,7 +24,19 @@ function formatDateFull(iso) {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
 
+async function loadGungsuhFont() {
+  try {
+    const font = new FontFace("GungsuhEmbed", "url(/fonts/gungsuh.ttf)");
+    const loaded = await font.load();
+    document.fonts.add(loaded);
+  } catch {
+    // fallback to system 궁서 / Gungsuh
+  }
+}
+
 export async function downloadMemberCert(member, returnBlob) {
+  await loadGungsuhFont();
+
   const pdfUrl = "/k-spara.pdf";
   const pdfBytes = await fetch(pdfUrl).then((r) => r.arrayBuffer());
 
@@ -41,7 +53,7 @@ export async function downloadMemberCert(member, returnBlob) {
   await page.render({ canvasContext: ctx, viewport }).promise;
 
   const fontSize = Math.round(18 * scale);
-  ctx.font = `${fontSize}px 궁서, Gungsuh, serif`;
+  ctx.font = `${fontSize}px GungsuhEmbed, 궁서, Gungsuh, serif`;
   ctx.textBaseline = "middle";
 
   function fillText(x, y, text, maxWidth) {
@@ -68,16 +80,16 @@ export async function downloadMemberCert(member, returnBlob) {
   const chars = [...member.name];
   const charGap = 50;
   const nameStartX = 408;
-  ctx.font = `${Math.round(20 * scale)}px 궁서, Gungsuh, serif`;
+  ctx.font = `${Math.round(20 * scale)}px GungsuhEmbed, 궁서, Gungsuh, serif`;
   chars.forEach((ch, i) => {
     fillText(nameStartX + i * charGap, 285, ch, charGap);
   });
-  ctx.font = `${Math.round(11 * scale)}px 궁서, Gungsuh, serif`;
+  ctx.font = `${Math.round(11 * scale)}px GungsuhEmbed, 궁서, Gungsuh, serif`;
   fillText2(408, 314, member.email, 280);
-  ctx.font = `${Math.round(18 * scale)}px 궁서, Gungsuh, serif`;
+  ctx.font = `${Math.round(18 * scale)}px GungsuhEmbed, 궁서, Gungsuh, serif`;
 
   fillText(408, 341, formatDateCompact(member.created_at), 220);
-  ctx.font = `${Math.round(25 * scale)}px 궁서, Gungsuh, serif`;
+  ctx.font = `${Math.round(25 * scale)}px GungsuhEmbed, 궁서, Gungsuh, serif`;
 
   fillText(217, 581, formatDateFull(member.approved_at), 250);
 

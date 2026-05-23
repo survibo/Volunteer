@@ -6,7 +6,7 @@ import { downloadMemberCert } from '../../lib/pdfCert'
 
 function roleLabel(role) {
   if (role === 'admin') return '관리자'
-  if (role === 'member') return '회원'
+  if (role === 'member') return '정회원'
   return '준회원'
 }
 
