@@ -1,6 +1,18 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
+import { Pencil, Users } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import ImageWithFallback from '../../components/ImageWithFallback'
+
+function parseImagePaths(value) {
+  if (!value) return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : [value]
+  } catch {
+    return [value]
+  }
+}
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -18,14 +30,20 @@ const config = {
     applicationTable: 'volunteer_applications',
     foreignKey: 'volunteer_activity_id',
     cancelRpc: 'cancel_own_volunteer_application',
+    decideRpc: 'decide_volunteer_application',
     listPath: '/volunteer',
+    adminEditPath: '/admin/volunteer',
+    adminApplicationsPath: '/admin/volunteer',
     label: '봉사활동',
   },
   educations: {
     applicationTable: 'education_applications',
     foreignKey: 'education_id',
     cancelRpc: 'cancel_own_education_application',
+    decideRpc: 'decide_education_application',
     listPath: '/education',
+    adminEditPath: '/admin/education',
+    adminApplicationsPath: '/admin/education',
     label: '교육',
   },
 }
@@ -39,6 +57,8 @@ const statusLabel = {
 
 export default function ActivityDetailPage({ table, profile }) {
   const { id } = useParams()
+  const navigate = useNavigate()
+  const isAdmin = profile?.role === 'admin'
   const cfg = config[table]
   const [activity, setActivity] = useState(null)
   const [application, setApplication] = useState(null)
@@ -50,6 +70,7 @@ export default function ActivityDetailPage({ table, profile }) {
   const isClosed = activity?.is_closed ?? true
   const canApply = activity && !deadlinePassed && !isClosed
   const myPendingApp = application?.status === 'pending'
+  const myCancelledApp = application?.status === 'cancelled'
 
   useEffect(() => {
     let mounted = true
@@ -89,11 +110,27 @@ export default function ActivityDetailPage({ table, profile }) {
     setSaving(true)
     setErrorMessage('')
 
-    const { error } = await supabase.from(cfg.applicationTable).insert({
-      [cfg.foreignKey]: id,
-      user_id: profile.id,
-      status: 'pending',
-    })
+    let error
+
+    if (application?.status === 'cancelled') {
+      ({ error } = await supabase
+        .from(cfg.applicationTable)
+        .update({
+          status: 'pending',
+          cancelled_at: null,
+          cancelled_by: null,
+          cancellation_reason: null,
+          decided_at: null,
+          decided_by: null,
+        })
+        .eq('id', application.id))
+    } else {
+      ({ error } = await supabase.from(cfg.applicationTable).insert({
+        [cfg.foreignKey]: id,
+        user_id: profile.id,
+        status: 'pending',
+      }))
+    }
 
     setSaving(false)
 
@@ -154,6 +191,26 @@ export default function ActivityDetailPage({ table, profile }) {
         <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
           {activity.title}
         </h1>
+        {isAdmin && (
+          <div className="mt-4 flex flex-wrap gap-2.5">
+            <button
+              className="inline-flex min-h-[38px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-border-default bg-white px-4 text-sm font-medium text-text-primary hover:bg-surface-subtle"
+              type="button"
+              onClick={() => navigate(`${cfg.adminEditPath}/${id}`)}
+            >
+              <Pencil size={16} />
+              수정
+            </button>
+            <button
+              className="inline-flex min-h-[38px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-border-default bg-white px-4 text-sm font-medium text-text-primary hover:bg-surface-subtle"
+              type="button"
+              onClick={() => navigate(`${cfg.adminApplicationsPath}/${id}/applications`)}
+            >
+              <Users size={16} />
+              신청 현황
+            </button>
+          </div>
+        )}
       </div>
 
       <dl className="grid gap-3 rounded-xl border border-border-default bg-surface-base p-6">
@@ -185,11 +242,28 @@ export default function ActivityDetailPage({ table, profile }) {
         </div>
       </dl>
 
+      {(() => {
+        const paths = parseImagePaths(activity.image_path)
+        if (paths.length === 0) return null
+        return (
+          <div className="flex flex-col gap-3">
+            {paths.map((path, i) => (
+              <ImageWithFallback
+                key={i}
+                className="w-full rounded-xl border border-border-default"
+                src={supabase.storage.from('volunteer').getPublicUrl(path).data.publicUrl}
+                alt={`${activity.title} ${i + 1}`}
+              />
+            ))}
+          </div>
+        )
+      })()}
+
       {errorMessage && (
         <p className="text-sm leading-normal text-status-error-text">{errorMessage}</p>
       )}
 
-      {application ? (
+      {application && !myCancelledApp ? (
         <div className="rounded-xl border border-border-default bg-surface-base p-6">
           <p className="text-sm text-text-secondary">
             신청 상태:{' '}
@@ -206,7 +280,8 @@ export default function ActivityDetailPage({ table, profile }) {
             </button>
           )}
         </div>
-      ) : canApply ? (
+      ) : null}
+      {canApply && (!application || myCancelledApp) ? (
         <button
           className="min-h-[44px] w-full cursor-pointer rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65 md:w-auto"
           disabled={saving}

@@ -5,6 +5,7 @@ import { getCurrentProfile, getHomePath } from './lib/auth'
 import ActivityDetailPage from './pages/activity/ActivityDetailPage'
 import AdminPage from './pages/admin/AdminPage'
 import AdminActivityEditPage from './pages/admin/AdminActivityEditPage'
+import AdminApplicationsPage from './pages/admin/AdminApplicationsPage'
 import AuthCallbackPage from './pages/auth/AuthCallbackPage'
 import ComingSoonPage from './pages/ComingSoonPage'
 import CreateEducationPage from './pages/admin/CreateEducationPage'
@@ -216,7 +217,7 @@ export default function App() {
         />
         <Route
           path="/admin/volunteer/:id/applications"
-          element={<ProtectedRoute adminOnly>{() => <ComingSoonPage />}</ProtectedRoute>}
+          element={<ProtectedRoute adminOnly>{() => <AdminApplicationsPage table="volunteer_activities" />}</ProtectedRoute>}
         />
         <Route
           path="/admin/education"
@@ -232,7 +233,7 @@ export default function App() {
         />
         <Route
           path="/admin/education/:id/applications"
-          element={<ProtectedRoute adminOnly>{() => <ComingSoonPage />}</ProtectedRoute>}
+          element={<ProtectedRoute adminOnly>{() => <AdminApplicationsPage table="educations" />}</ProtectedRoute>}
         />
         <Route
           path="*"

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Pencil } from "lucide-react";
+import { Pencil, Users } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 function formatDate(iso) {
@@ -59,6 +59,11 @@ function categorize(activities) {
   return groups;
 }
 
+const appTableMap = {
+  volunteer_activities: { table: 'volunteer_applications', fk: 'volunteer_activity_id' },
+  educations: { table: 'education_applications', fk: 'education_id' },
+}
+
 function ActivityCard({ activity, detailPath, adminEditBasePath, isAdmin }) {
   const navigate = useNavigate();
 
@@ -72,6 +77,12 @@ function ActivityCard({ activity, detailPath, adminEditBasePath, isAdmin }) {
         <p>마감 {formatDate(activity.application_deadline)}</p>
         <p className="text-status-error-text">{remainingText(activity.application_deadline)}</p>
         <p>정원 {activity.capacity}명</p>
+        {isAdmin && activity._applicantCount !== undefined && (
+          <p className="flex items-center gap-1">
+            <Users size={14} />
+            신청 {activity._applicantCount}명
+          </p>
+        )}
       </div>
       {isAdmin && (
         <button
@@ -98,6 +109,25 @@ async function fetchActivities(table) {
   return { data: data ?? [], error };
 }
 
+async function fetchApplicantCounts(table, activityIds) {
+  if (activityIds.length === 0) return {}
+  const appCfg = appTableMap[table]
+  if (!appCfg) return {}
+
+  const { data } = await supabase
+    .from(appCfg.table)
+    .select(`${appCfg.fk}, count`)
+    .in(appCfg.fk, activityIds)
+    .neq('status', 'cancelled')
+    .neq('status', 'rejected')
+
+  const counts = {}
+  for (const row of data ?? []) {
+    counts[row[appCfg.fk]] = (counts[row[appCfg.fk]] ?? 0) + 1
+  }
+  return counts
+}
+
 export default function ActivityList({
   table,
   sectionLabel,
@@ -117,17 +147,22 @@ export default function ActivityList({
 
     async function load() {
       const { data } = await fetchActivities(table);
-      if (mounted) {
-        setActivities(data);
-        setLoading(false);
-      }
+      if (!mounted) return
+
+      const counts = isAdmin
+        ? await fetchApplicantCounts(table, data.map((a) => a.id))
+        : {}
+
+      if (!mounted) return
+      setActivities(data.map((a) => ({ ...a, _applicantCount: counts[a.id] ?? 0 })));
+      setLoading(false);
     }
 
     load();
     return () => {
       mounted = false;
     };
-  }, [table]);
+  }, [table, isAdmin]);
 
   const groups = categorize(activities);
   const activeItems = groups[filter];

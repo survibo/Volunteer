@@ -724,23 +724,25 @@ begin
   end if;
 
   if next_status in ('accepted', 'rejected') then
-    update public.volunteer_applications va
+    update public.volunteer_applications
     set status = next_status,
         decided_at = now(),
-        decided_by = (select auth.uid())
-    from public.volunteer_activities activity
-    where va.id = application_id
-      and va.volunteer_activity_id = activity.id
-      and va.status = 'pending'
-      and activity.application_deadline > now();
+        decided_by = (select auth.uid()),
+        cancelled_at = null,
+        cancelled_by = null,
+        cancellation_reason = null
+    where id = application_id
+      and status in ('pending', 'accepted', 'rejected');
   else
     update public.volunteer_applications
     set status = 'cancelled',
         cancelled_at = now(),
         cancelled_by = (select auth.uid()),
-        cancellation_reason = reason
+        cancellation_reason = reason,
+        decided_at = null,
+        decided_by = null
     where id = application_id
-      and status in ('pending', 'accepted');
+      and status in ('pending', 'accepted', 'rejected');
   end if;
 
   if not found then
@@ -769,23 +771,25 @@ begin
   end if;
 
   if next_status in ('accepted', 'rejected') then
-    update public.education_applications ea
+    update public.education_applications
     set status = next_status,
         decided_at = now(),
-        decided_by = (select auth.uid())
-    from public.educations education
-    where ea.id = application_id
-      and ea.education_id = education.id
-      and ea.status = 'pending'
-      and education.application_deadline > now();
+        decided_by = (select auth.uid()),
+        cancelled_at = null,
+        cancelled_by = null,
+        cancellation_reason = null
+    where id = application_id
+      and status in ('pending', 'accepted', 'rejected');
   else
     update public.education_applications
     set status = 'cancelled',
         cancelled_at = now(),
         cancelled_by = (select auth.uid()),
-        cancellation_reason = reason
+        cancellation_reason = reason,
+        decided_at = null,
+        decided_by = null
     where id = application_id
-      and status in ('pending', 'accepted');
+      and status in ('pending', 'accepted', 'rejected');
   end if;
 
   if not found then
@@ -878,6 +882,12 @@ create policy "Admins can update volunteer activities"
   using (private.is_admin())
   with check (private.is_admin());
 
+drop policy if exists "Admins can delete volunteer activities" on public.volunteer_activities;
+create policy "Admins can delete volunteer activities"
+  on public.volunteer_activities for delete
+  to authenticated
+  using (private.is_admin());
+
 -- educations
 drop policy if exists "Active users can read open educations" on public.educations;
 create policy "Active users can read open educations"
@@ -906,6 +916,12 @@ create policy "Admins can update educations"
   to authenticated
   using (private.is_admin())
   with check (private.is_admin());
+
+drop policy if exists "Admins can delete educations" on public.educations;
+create policy "Admins can delete educations"
+  on public.educations for delete
+  to authenticated
+  using (private.is_admin());
 
 -- volunteer_applications
 -- 신청 취소와 관리자 상태 처리는 RPC 함수로 상태 전이를 검증한다.
@@ -970,6 +986,47 @@ create policy "Users can apply to educations"
   );
 
 -- Application state changes are restricted to RPC functions.
+
+-- Re-apply after self-cancellation
+drop policy if exists "Users can re-apply after cancellation" on public.volunteer_applications;
+create policy "Users can re-apply after cancellation"
+  on public.volunteer_applications for update
+  to authenticated
+  using (
+    user_id = (select auth.uid())
+    and status = 'cancelled'
+    and private.is_active_user()
+  )
+  with check (
+    status = 'pending'
+    and user_id = (select auth.uid())
+    and exists (
+      select 1 from public.volunteer_activities
+      where id = volunteer_activity_id
+        and is_closed = false
+        and application_deadline > now()
+    )
+  );
+
+drop policy if exists "Users can re-apply after cancellation" on public.education_applications;
+create policy "Users can re-apply after cancellation"
+  on public.education_applications for update
+  to authenticated
+  using (
+    user_id = (select auth.uid())
+    and status = 'cancelled'
+    and private.is_active_user()
+  )
+  with check (
+    status = 'pending'
+    and user_id = (select auth.uid())
+    and exists (
+      select 1 from public.educations
+      where id = education_id
+        and is_closed = false
+        and application_deadline > now()
+    )
+  );
 
 -- withdrawn_users / member_number_sequences
 drop policy if exists "Admins can read withdrawn users" on public.withdrawn_users;

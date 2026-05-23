@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
+import { X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import ImageWithFallback from './ImageWithFallback'
 
 function toDatetimeLocal(iso) {
   if (!iso) return ''
@@ -11,6 +13,16 @@ function toDatetimeLocal(iso) {
   const hh = String(d.getHours()).padStart(2, '0')
   const mm = String(d.getMinutes()).padStart(2, '0')
   return `${y}-${m}-${day}T${hh}:${mm}`
+}
+
+function parseImagePaths(value) {
+  if (!value) return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : [value]
+  } catch {
+    return [value]
+  }
 }
 
 const emptyForm = {
@@ -40,12 +52,43 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
   const navigate = useNavigate()
   const isEdit = !!initialData
   const [form, setForm] = useState(() => buildInitial(initialData))
+  const [existingPaths, setExistingPaths] = useState(() => parseImagePaths(initialData?.image_path))
+  const [newFiles, setNewFiles] = useState([])
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
   function updateField(e) {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  function handleImageSelect(e) {
+    const files = Array.from(e.target.files ?? [])
+    setNewFiles((prev) => [...prev, ...files.map((f) => ({ file: f, preview: URL.createObjectURL(f) }))])
+    e.target.value = ''
+  }
+
+  function removeExisting(index) {
+    setExistingPaths((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function removeNewFile(index) {
+    setNewFiles((prev) => {
+      URL.revokeObjectURL(prev[index].preview)
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
+  async function uploadFiles() {
+    const uploaded = []
+    for (const { file } of newFiles) {
+      const ext = file.name.split('.').pop()
+      const objectPath = `${table}/${crypto.randomUUID()}.${ext}`
+      const { error } = await supabase.storage.from('volunteer').upload(objectPath, file)
+      if (error) throw new Error(error.message)
+      uploaded.push(objectPath)
+    }
+    return uploaded
   }
 
   async function handleSubmit(e) {
@@ -69,9 +112,23 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
       return
     }
 
+    let allPaths = [...existingPaths]
+
+    if (newFiles.length > 0) {
+      try {
+        const newPaths = await uploadFiles()
+        allPaths = [...allPaths, ...newPaths]
+      } catch (error) {
+        setSaving(false)
+        setErrorMessage(error.message)
+        return
+      }
+    }
+
     const payload = {
       title,
       description: form.description.trim() || null,
+      image_path: allPaths.length > 0 ? JSON.stringify(allPaths) : null,
       location,
       application_deadline: new Date(form.application_deadline).toISOString(),
       starts_at: new Date(form.starts_at).toISOString(),
@@ -95,6 +152,7 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
       return
     }
 
+    newFiles.forEach((f) => URL.revokeObjectURL(f.preview))
     navigate(redirectTo, { replace: true })
   }
 
@@ -133,6 +191,53 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
             onChange={updateField}
           />
         </label>
+
+        <div className="grid gap-3 md:col-span-2">
+          <p className="text-xs font-semibold text-text-secondary">이미지</p>
+          <input
+            className="block w-full text-sm text-text-primary file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-action-default file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-action-hover"
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleImageSelect}
+          />
+          {existingPaths.length > 0 || newFiles.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {existingPaths.map((path, i) => (
+                <div key={`e-${i}`} className="group relative">
+                  <ImageWithFallback
+                    className="h-32 w-full rounded-lg object-cover"
+                    src={supabase.storage.from('volunteer').getPublicUrl(path).data.publicUrl}
+                    alt=""
+                  />
+                  <button
+                    className="absolute -right-2 -top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-status-error-text text-white hover:opacity-80"
+                    type="button"
+                    onClick={() => removeExisting(i)}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              {newFiles.map((f, i) => (
+                <div key={`n-${i}`} className="group relative">
+                  <img
+                    className="h-32 w-full rounded-lg object-cover"
+                    src={f.preview}
+                    alt=""
+                  />
+                  <button
+                    className="absolute -right-2 -top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-status-error-text text-white hover:opacity-80"
+                    type="button"
+                    onClick={() => removeNewFile(i)}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
 
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
           장소
