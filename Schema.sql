@@ -589,8 +589,8 @@ create or replace function public.update_own_profile(
   new_phone text,
   new_email text,
   new_address text,
-  new_address_detail text default '',
   new_workplace_or_school text,
+  new_address_detail text default '',
   new_license_number text default null
 )
 returns void
@@ -814,8 +814,8 @@ begin
 end;
 $$;
 
-revoke all on function public.approve_member(uuid) from public;
-revoke all on function public.grant_admin(uuid) from public;
+revoke all on function public.approve_member(uuid, text) from public;
+revoke all on function public.grant_admin(uuid, text) from public;
 revoke all on function public.update_own_profile(text, text, text, text, text, text, text) from public;
 revoke all on function public.cancel_own_volunteer_application(uuid) from public;
 revoke all on function public.withdraw_current_user() from public;
@@ -823,8 +823,8 @@ revoke all on function public.cancel_own_education_application(uuid) from public
 revoke all on function public.decide_volunteer_application(uuid, public.application_status, text) from public;
 revoke all on function public.decide_education_application(uuid, public.application_status, text) from public;
 
-grant execute on function public.approve_member(uuid) to authenticated;
-grant execute on function public.grant_admin(uuid) to authenticated;
+grant execute on function public.approve_member(uuid, text) to authenticated;
+grant execute on function public.grant_admin(uuid, text) to authenticated;
 grant execute on function public.update_own_profile(text, text, text, text, text, text, text) to authenticated;
 grant execute on function public.cancel_own_volunteer_application(uuid) to authenticated;
 grant execute on function public.withdraw_current_user() to authenticated;

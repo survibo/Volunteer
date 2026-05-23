@@ -87,16 +87,30 @@ export default function RegisterPage() {
     setSaving(true)
     setErrorMessage('')
 
+    const name = form.name.trim()
+    const phone = form.phone.trim()
+    const email = form.email.trim()
+    const address = form.address.trim()
+    const address_detail = form.address_detail.trim() || ''
+    const workplace_or_school = form.workplace_or_school.trim()
+    const license_number = form.license_number.trim() || null
+
+    if (!name || !phone || !email || !address || !address_detail || !workplace_or_school) {
+      setSaving(false)
+      setErrorMessage('필수 항목을 모두 입력해 주세요.')
+      return
+    }
+
     const payload = {
       id: session.user.id,
       role: 'pending',
-      name: form.name.trim(),
-      phone: form.phone.trim(),
-      email: form.email.trim(),
-      address: form.address.trim(),
-      address_detail: form.address_detail.trim() || '',
-      workplace_or_school: form.workplace_or_school.trim(),
-      license_number: form.license_number.trim() || null,
+      name,
+      phone,
+      email,
+      address,
+      address_detail,
+      workplace_or_school,
+      license_number,
     }
 
     try {
@@ -183,6 +197,7 @@ export default function RegisterPage() {
             <input
               className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="address_detail"
+              required
               value={form.address_detail}
               onChange={updateField}
               placeholder="건물명, 동/호수 등"

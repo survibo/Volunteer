@@ -65,9 +65,6 @@ export default function MyPage({ profile }) {
         <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">주소</dt>
           <dd className="m-0">{profile.address}</dd>
-        </div>
-        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
-          <dt className="font-medium text-text-secondary">상세주소</dt>
           <dd className="m-0">{profile.address_detail || "-"}</dd>
         </div>
         <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">

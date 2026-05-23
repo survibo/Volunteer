@@ -47,9 +47,9 @@ export default function MyPageEditPage({ profile }) {
     const workplace_or_school = form.workplace_or_school.trim()
     const license_number = form.license_number.trim()
 
-    if (!name || !phone || !email || !address) {
+    if (!name || !phone || !email || !address || !address_detail || !workplace_or_school) {
       setSaving(false)
-      setErrorMessage('이름, 연락처, 이메일, 주소를 모두 입력해 주세요.')
+      setErrorMessage('필수 항목을 모두 입력해 주세요.')
       return
     }
 
@@ -121,6 +121,7 @@ export default function MyPageEditPage({ profile }) {
             <input
               className="min-h-11 flex-1 rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               readOnly
+              required
               value={baseAddress || form.address}
               placeholder="주소 검색 버튼을 눌러주세요"
             />
@@ -137,6 +138,7 @@ export default function MyPageEditPage({ profile }) {
           상세주소
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+            required
             value={detailAddress}
             onChange={(e) => setDetailAddress(e.target.value)}
             placeholder="건물명, 동/호수 등"
@@ -147,6 +149,7 @@ export default function MyPageEditPage({ profile }) {
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
             name="workplace_or_school"
+            required
             value={form.workplace_or_school}
             onChange={updateField}
           />

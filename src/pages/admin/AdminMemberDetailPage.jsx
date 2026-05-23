@@ -21,8 +21,8 @@ function formatDate(iso) {
 function getConfirmContent(action, memberName) {
   if (action === 'approve') {
     return {
-      title: '회원번호를 부여할까요?',
-      description: `${memberName}님을 회원으로 전환하고 회원번호를 자동 부여합니다.`,
+      title: '회원번호를 입력해 주세요',
+      description: `${memberName}님을 회원으로 전환합니다. 형식: YY-NNNN`,
       confirmText: '회원 부여',
       variant: 'primary',
     }
@@ -31,7 +31,7 @@ function getConfirmContent(action, memberName) {
   if (action === 'admin') {
     return {
       title: '관리자로 부여할까요?',
-      description: `${memberName}님을 관리자로 전환합니다. 회원번호가 없으면 자동으로 새 회원번호를 부여합니다.`,
+      description: `${memberName}님을 관리자로 전환합니다.`,
       confirmText: '관리자 부여',
       variant: 'danger',
     }
@@ -52,6 +52,7 @@ export default function AdminMemberDetailPage() {
   const [processing, setProcessing] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [confirmAction, setConfirmAction] = useState(null)
+  const [memberNumberInput, setMemberNumberInput] = useState('')
 
   useEffect(() => {
     let mounted = true
@@ -89,15 +90,21 @@ export default function AdminMemberDetailPage() {
       let nextMember
 
       if (confirmAction === 'approve') {
-        nextMember = await approveMember(id)
+        if (!memberNumberInput.match(/^\d{2}-\d{4}$/)) {
+          setErrorMessage('회원번호 형식이 올바르지 않습니다. (YY-NNNN)')
+          setProcessing(false)
+          return
+        }
+        nextMember = await approveMember(id, memberNumberInput)
       } else if (confirmAction === 'admin') {
-        nextMember = await grantAdmin(id)
+        nextMember = await grantAdmin(id, memberNumberInput || undefined)
       } else {
         nextMember = await cancelMemberApproval(id)
       }
 
       setMember(nextMember)
       setConfirmAction(null)
+      setMemberNumberInput('')
     } catch (error) {
       setErrorMessage(error.message)
     } finally {
@@ -161,6 +168,12 @@ export default function AdminMemberDetailPage() {
               회원 취소
             </button>
           )}
+          <Link
+            className="inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-lg border border-border-default bg-white px-4 text-sm font-semibold text-text-primary hover:bg-surface-subtle"
+            to={`/admin/members/${id}/history`}
+          >
+            활동 내역
+          </Link>
         </div>
         {errorMessage && (
           <p className="mt-3 text-sm text-status-error-text">{errorMessage}</p>
@@ -205,13 +218,6 @@ export default function AdminMemberDetailPage() {
           <dd className="m-0">{formatDate(member.approved_at)}</dd>
         </div>
       </dl>
-      <Link
-        className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover sm:w-auto"
-        to={`/admin/members/${id}/history`}
-      >
-        활동 내역
-      </Link>
-
       {member.role !== 'admin' && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-5 sm:p-6">
           <p className="mb-3 text-sm font-semibold text-red-700">관리자 권한</p>
@@ -243,6 +249,15 @@ export default function AdminMemberDetailPage() {
             <p className="mt-2 text-sm text-text-secondary">
               {confirmContent.description}
             </p>
+            {confirmAction === 'approve' && (
+              <input
+                className="mt-4 min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+                placeholder="YY-NNNN (예: 25-0001)"
+                value={memberNumberInput}
+                onChange={(e) => setMemberNumberInput(e.target.value)}
+                autoFocus
+              />
+            )}
             <div className="mt-5 flex gap-2.5">
               <button
                 className={

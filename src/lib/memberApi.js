@@ -31,9 +31,10 @@ export async function getMember(id) {
   return data
 }
 
-export async function approveMember(id) {
+export async function approveMember(id, memberNumber) {
   const { error } = await supabase.rpc('approve_member', {
     target_user_id: id,
+    member_number: memberNumber,
   })
 
   throwIfError(error)
@@ -58,9 +59,10 @@ export async function cancelMemberApproval(id) {
   return getMember(id)
 }
 
-export async function grantAdmin(id) {
+export async function grantAdmin(id, memberNumber) {
   const { error } = await supabase.rpc('grant_admin', {
     target_user_id: id,
+    member_number: memberNumber,
   })
 
   throwIfError(error)
