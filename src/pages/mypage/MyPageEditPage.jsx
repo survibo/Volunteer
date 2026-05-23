@@ -88,7 +88,7 @@ export default function MyPageEditPage({ profile }) {
         onSubmit={handleSubmit}
       >
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-          이름 <span className="text-status-error-text">*</span>
+          <span>이름 <span className="text-status-error-text">*</span></span>
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
             name="name"
@@ -98,7 +98,7 @@ export default function MyPageEditPage({ profile }) {
           />
         </label>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-          연락처 <span className="text-status-error-text">*</span>
+          <span>연락처 <span className="text-status-error-text">*</span></span>
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
             name="phone"
@@ -108,7 +108,7 @@ export default function MyPageEditPage({ profile }) {
           />
         </label>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-          이메일 <span className="text-status-error-text">*</span>
+          <span>이메일 <span className="text-status-error-text">*</span></span>
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
             name="email"
@@ -119,7 +119,7 @@ export default function MyPageEditPage({ profile }) {
           />
         </label>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-          주소 <span className="text-status-error-text">*</span>
+          <span>주소 <span className="text-status-error-text">*</span></span>
           <div className="flex gap-2">
             <input
               className="min-h-11 flex-1 rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
@@ -138,7 +138,7 @@ export default function MyPageEditPage({ profile }) {
           </div>
         </label>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-          상세주소 <span className="text-status-error-text">*</span>
+          <span>상세주소 <span className="text-status-error-text">*</span></span>
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
             required
@@ -148,7 +148,7 @@ export default function MyPageEditPage({ profile }) {
           />
         </label>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-          근무지 또는 학교 <span className="text-status-error-text">*</span>
+          <span>근무지 또는 학교 <span className="text-status-error-text">*</span></span>
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
             name="workplace_or_school"

@@ -162,7 +162,7 @@ export default function RegisterPage() {
         </h1>
         <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-            이름 <span className="text-status-error-text">*</span>
+            <span>이름 <span className="text-status-error-text">*</span></span>
             <input
               className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="name"
@@ -172,7 +172,7 @@ export default function RegisterPage() {
             />
           </label>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-            연락처 <span className="text-status-error-text">*</span>
+            <span>연락처 <span className="text-status-error-text">*</span></span>
             <input
               className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="phone"
@@ -182,7 +182,7 @@ export default function RegisterPage() {
             />
           </label>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-            이메일 <span className="text-status-error-text">*</span>
+            <span>이메일 <span className="text-status-error-text">*</span></span>
             <input
               className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="email"
@@ -193,7 +193,7 @@ export default function RegisterPage() {
             />
           </label>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-            주소 <span className="text-status-error-text">*</span>
+            <span>주소 <span className="text-status-error-text">*</span></span>
             <div className="flex gap-2">
               <input
                 className="min-h-11 flex-1 rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
@@ -213,7 +213,7 @@ export default function RegisterPage() {
             </div>
           </label>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-            상세주소 <span className="text-status-error-text">*</span>
+            <span>상세주소 <span className="text-status-error-text">*</span></span>
             <input
               className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="address_detail"
@@ -224,7 +224,7 @@ export default function RegisterPage() {
             />
           </label>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-            근무지 or 학교명 <span className="text-status-error-text">*</span>
+            <span>근무지 or 학교명 <span className="text-status-error-text">*</span></span>
             <input
               className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="workplace_or_school"
