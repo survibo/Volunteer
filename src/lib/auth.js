@@ -113,7 +113,8 @@ export async function updateOwnProfile(payload) {
     new_address_detail: payload.address_detail ?? '',
     new_workplace_or_school: payload.workplace_or_school,
     new_license_number: payload.license_number,
-    new_experience: payload.experience,
+    new_volunteer_experience: payload.volunteer_experience,
+    new_education_experience: payload.education_experience,
   })
 
   if (error) {

@@ -12,7 +12,8 @@ export default function MyPageEditPage({ profile }) {
     address: profile.address ?? '',
     workplace_or_school: profile.workplace_or_school ?? '',
     license_number: profile.license_number ?? '',
-    experience: profile.experience ?? '',
+    volunteer_experience: profile.volunteer_experience ?? '',
+    education_experience: profile.education_experience ?? '',
   })
   const [baseAddress, setBaseAddress] = useState('')
   const [detailAddress, setDetailAddress] = useState('')
@@ -47,7 +48,8 @@ export default function MyPageEditPage({ profile }) {
     const address_detail = detailAddress.trim()
     const workplace_or_school = form.workplace_or_school.trim()
     const license_number = form.license_number.trim()
-    const experience = form.experience.trim() || null
+    const volunteer_experience = form.volunteer_experience.trim() || null
+    const education_experience = form.education_experience.trim() || null
 
     if (!name || !phone || !email || !address || !address_detail || !workplace_or_school) {
       setSaving(false)
@@ -64,7 +66,8 @@ export default function MyPageEditPage({ profile }) {
         address_detail: address_detail || '',
         workplace_or_school,
         license_number: license_number || null,
-        experience,
+        volunteer_experience,
+        education_experience,
       })
       navigate('/mypage', { replace: true })
     } catch (error) {
@@ -168,13 +171,24 @@ export default function MyPageEditPage({ profile }) {
             />
         </label>
         <label className="col-span-full grid gap-2 text-xs font-semibold text-text-secondary">
-          과거 이력 / 활동 경력
+          봉사활동 이력
           <textarea
             className="min-h-24 w-full resize-y rounded-lg border border-border-default bg-white px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
-            name="experience"
-            value={form.experience}
+            name="volunteer_experience"
+            value={form.volunteer_experience}
             onChange={updateField}
-            placeholder="봉사활동, 교육, 자격증 등 관련 경력을 입력해 주세요."
+            placeholder="이전 봉사활동 경험이 있다면 입력해 주세요."
+            rows={3}
+          />
+        </label>
+        <label className="col-span-full grid gap-2 text-xs font-semibold text-text-secondary">
+          교육 이력
+          <textarea
+            className="min-h-24 w-full resize-y rounded-lg border border-border-default bg-white px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+            name="education_experience"
+            value={form.education_experience}
+            onChange={updateField}
+            placeholder="수료한 교육이나 관련 교육 이력이 있다면 입력해 주세요."
             rows={3}
           />
         </label>

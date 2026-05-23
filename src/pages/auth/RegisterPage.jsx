@@ -11,7 +11,8 @@ const emptyForm = {
   address_detail: '',
   workplace_or_school: '',
   license_number: '',
-  experience: '',
+  volunteer_experience: '',
+  education_experience: '',
 }
 
 export default function RegisterPage() {
@@ -97,7 +98,8 @@ export default function RegisterPage() {
     const address_detail = form.address_detail.trim() || ''
     const workplace_or_school = form.workplace_or_school.trim()
     const license_number = form.license_number.trim() || null
-    const experience = form.experience.trim() || null
+    const volunteer_experience = form.volunteer_experience.trim() || null
+    const education_experience = form.education_experience.trim() || null
 
     if (!name || !phone || !email || !address || !address_detail || !workplace_or_school) {
       setSaving(false)
@@ -115,7 +117,8 @@ export default function RegisterPage() {
       address_detail,
       workplace_or_school,
       license_number,
-      experience,
+      volunteer_experience,
+      education_experience,
     }
 
     try {
@@ -244,13 +247,24 @@ export default function RegisterPage() {
             />
           </label>
           <label className="col-span-full grid gap-2 text-xs font-semibold text-text-secondary">
-            과거 이력 / 활동 경력
+            봉사활동 이력
             <textarea
               className="min-h-24 w-full resize-y rounded-lg border border-border-default bg-white px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
-              name="experience"
-              value={form.experience}
+              name="volunteer_experience"
+              value={form.volunteer_experience}
               onChange={updateField}
-              placeholder="봉사활동, 교육, 자격증 등 관련 경력을 입력해 주세요."
+              placeholder="이전 봉사활동 경험이 있다면 입력해 주세요."
+              rows={3}
+            />
+          </label>
+          <label className="col-span-full grid gap-2 text-xs font-semibold text-text-secondary">
+            교육 이력
+            <textarea
+              className="min-h-24 w-full resize-y rounded-lg border border-border-default bg-white px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+              name="education_experience"
+              value={form.education_experience}
+              onChange={updateField}
+              placeholder="수료한 교육이나 관련 교육 이력이 있다면 입력해 주세요."
               rows={3}
             />
           </label>

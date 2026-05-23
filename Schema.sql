@@ -84,7 +84,8 @@ create table if not exists public.users (
   address_detail      text          not null default '',
   workplace_or_school text          not null,
   license_number      text,
-  experience          text,                                                 -- 과거 이력 / 활동 경력 (선택)
+  volunteer_experience text,                                                -- 봉사활동 이력 (선택)
+  education_experience text,                                                -- 교육 이력 (선택)
   approved_at         timestamptz,                                         -- 회원 승인 일시
   approved_by         uuid          references public.users(id) on delete set null,
   created_at          timestamptz   not null default now(),
@@ -125,7 +126,8 @@ create table if not exists public.withdrawn_users (
   name          text        not null,
   phone         text        not null,
   email         text        not null,
-  experience    text,
+  volunteer_experience text,
+  education_experience text,
   withdrawn_at  timestamptz not null default now(),
   created_at    timestamptz not null default now(),
   constraint withdrawn_users_role_check
@@ -590,7 +592,9 @@ begin
 end;
 $$;
 
-create or replace function public.update_own_profile(
+drop function if exists public.update_own_profile(text, text, text, text, text, text, text);
+drop function if exists public.update_own_profile(text, text, text, text, text, text, text, text);
+create function public.update_own_profile(
   new_name text,
   new_phone text,
   new_email text,
@@ -598,7 +602,8 @@ create or replace function public.update_own_profile(
   new_workplace_or_school text,
   new_address_detail text default '',
   new_license_number text default null,
-  new_experience text default null
+  new_volunteer_experience text default null,
+  new_education_experience text default null
 )
 returns void
 language plpgsql
@@ -618,7 +623,8 @@ begin
       address_detail = new_address_detail,
       workplace_or_school = new_workplace_or_school,
       license_number = new_license_number,
-      experience = new_experience
+      volunteer_experience = new_volunteer_experience,
+      education_experience = new_education_experience
   where id = (select auth.uid())
     and role in ('pending', 'member', 'admin');
 
@@ -683,7 +689,8 @@ begin
     name,
     phone,
     email,
-    experience,
+    volunteer_experience,
+    education_experience,
     withdrawn_at
   )
   values (
@@ -693,7 +700,8 @@ begin
     current_profile.name,
     current_profile.phone,
     current_profile.email,
-    current_profile.experience,
+    current_profile.volunteer_experience,
+    current_profile.education_experience,
     now()
   );
 
@@ -839,7 +847,7 @@ $$;
 revoke all on function public.cancel_registration() from public;
 revoke all on function public.approve_member(uuid, text) from public;
 revoke all on function public.grant_admin(uuid, text) from public;
-revoke all on function public.update_own_profile(text, text, text, text, text, text, text, text) from public;
+revoke all on function public.update_own_profile(text, text, text, text, text, text, text, text, text) from public;
 revoke all on function public.cancel_own_volunteer_application(uuid) from public;
 revoke all on function public.withdraw_current_user() from public;
 revoke all on function public.cancel_own_education_application(uuid) from public;
@@ -849,7 +857,7 @@ revoke all on function public.decide_education_application(uuid, public.applicat
 grant execute on function public.cancel_registration() to authenticated;
 grant execute on function public.approve_member(uuid, text) to authenticated;
 grant execute on function public.grant_admin(uuid, text) to authenticated;
-grant execute on function public.update_own_profile(text, text, text, text, text, text, text, text) to authenticated;
+grant execute on function public.update_own_profile(text, text, text, text, text, text, text, text, text) to authenticated;
 grant execute on function public.cancel_own_volunteer_application(uuid) to authenticated;
 grant execute on function public.withdraw_current_user() to authenticated;
 grant execute on function public.cancel_own_education_application(uuid) to authenticated;
