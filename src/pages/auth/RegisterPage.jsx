@@ -13,6 +13,7 @@ const emptyForm = {
   address_detail: '',
   workplace_or_school: '',
   license_number: '',
+  birthday: '',
   volunteer_experience: '',
   education_experience: '',
 }
@@ -103,6 +104,7 @@ export default function RegisterPage() {
     const address_detail = form.address_detail.trim() || ''
     const workplace_or_school = form.workplace_or_school.trim()
     const license_number = form.license_number.trim() || null
+    const birthday = form.birthday || null
     const volunteer_experience = form.volunteer_experience.trim() || null
     const education_experience = form.education_experience.trim() || null
 
@@ -133,6 +135,7 @@ export default function RegisterPage() {
       address_detail,
       workplace_or_school,
       license_number,
+      birthday,
       volunteer_experience,
       education_experience,
       avatar_path,
@@ -311,6 +314,16 @@ export default function RegisterPage() {
               value={form.license_number}
               onChange={updateField}
               inputMode="numeric"
+            />
+          </label>
+          <label className="grid gap-2 text-xs font-semibold text-text-secondary">
+            생년월일
+            <input
+              className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+              name="birthday"
+              type="date"
+              value={form.birthday}
+              onChange={updateField}
             />
           </label>
           <label className="col-span-full grid gap-2 text-xs font-semibold text-text-secondary">

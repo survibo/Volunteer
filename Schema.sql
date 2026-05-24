@@ -20,7 +20,17 @@
 --   - image_path에는 각 bucket 내부 object path만 저장한다.
 -- =============================================================================
 
+
+-- =============================================================================
+-- 1. Extensions
+-- =============================================================================
+
 create extension if not exists pgcrypto;
+
+
+-- =============================================================================
+-- 2. Storage Buckets
+-- =============================================================================
 
 insert into storage.buckets (id, name, public)
 values
@@ -32,7 +42,7 @@ set public = excluded.public;
 
 
 -- =============================================================================
--- Enum Types
+-- 3. Enum Types
 -- =============================================================================
 
 do $$
@@ -60,10 +70,31 @@ exception
 end;
 $$;
 
+do $$
+begin
+  create type public.notification_type as enum (
+    'new_activity',
+    'deadline_approaching',
+    'application_accepted',
+    'application_rejected',
+    'member_approved',
+    'new_member_registered',
+    'new_admin_granted',
+    'activity_capacity_full'
+  );
+exception
+  when duplicate_object then null;
+end;
+$$;
+
 
 -- =============================================================================
--- users
+-- 4. Tables
 -- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- 4.1 users
+-- ---------------------------------------------------------------------------
 -- OAuth 로그인 후 가입 정보 입력을 완료한 앱 사용자 프로필이다.
 -- Supabase Auth를 인증 원천으로 두고, 앱에서 필요한 가입 정보와 권한을 여기에 저장한다.
 --
@@ -72,26 +103,27 @@ $$;
 --   - 탈퇴 시 withdrawn_users에 스냅샷을 먼저 insert한 뒤 users row를 삭제한다.
 --   - 일반 사용자의 프로필 수정은 role/member_number 변경을 막기 위해
 --     컬럼 권한 또는 별도 RPC/Edge Function으로 제한한다.
--- =============================================================================
+-- ---------------------------------------------------------------------------
 
 create table if not exists public.users (
-  id                  uuid          primary key references auth.users(id) on delete cascade,
-  role                public.user_role not null default 'pending',
-  member_number       text          unique,                                -- 회원 전환 시 부여되는 YY-NNNN 번호
-  name                text          not null,
-  phone               text          not null,
-  email               text          not null,
-  address             text          not null,
-  address_detail      text          not null default '',
-  workplace_or_school text          not null,
-  license_number      text,
-  volunteer_experience text,                                                -- 봉사활동 이력 (선택)
-  education_experience text,                                                -- 교육 이력 (선택)
-  avatar_path         text,                                                 -- 프로필 사진 object path (avatars bucket)
-  approved_at         timestamptz,                                         -- 회원 승인 일시
-  approved_by         uuid          references public.users(id) on delete set null,
-  created_at          timestamptz   not null default now(),
-  updated_at          timestamptz   not null default now(),
+  id                   uuid              primary key references auth.users(id) on delete cascade,
+  role                 public.user_role  not null default 'pending',
+  member_number        text              unique,
+  name                 text              not null,
+  phone                text              not null,
+  email                text              not null,
+  address              text              not null,
+  address_detail       text              not null default '',
+  workplace_or_school  text              not null,
+  license_number       text,
+  birthday             date,
+  volunteer_experience text,
+  education_experience text,
+  avatar_path          text,
+  approved_at          timestamptz,
+  approved_by          uuid              references public.users(id) on delete set null,
+  created_at           timestamptz       not null default now(),
+  updated_at           timestamptz       not null default now(),
   constraint users_member_number_format_check
     check (member_number is null or member_number ~ '^\d{2}-\d{4}$'),
   constraint users_member_number_required_for_member_check
@@ -110,26 +142,26 @@ create index if not exists users_role_idx on public.users(role);
 create unique index if not exists users_email_unique_idx on public.users(email);
 
 
--- =============================================================================
--- withdrawn_users
--- =============================================================================
+-- ---------------------------------------------------------------------------
+-- 4.2 withdrawn_users
+-- ---------------------------------------------------------------------------
 -- 탈퇴한 준회원/회원의 관리자 조회용 보관 정보다.
 -- 재가입 시 기존 auth.users.id와 연결하지 않는 신규 절차를 허용하기 위해
 -- 스냅샷으로 저장한다(외래키 없이 user_id만 기록).
--- =============================================================================
+-- ---------------------------------------------------------------------------
 
 create table if not exists public.withdrawn_users (
-  id            uuid        primary key default gen_random_uuid(),
-  user_id       uuid,                    -- 탈퇴 당시 Auth user id (참조 없이 보관)
-  role          public.user_role not null,
-  member_number text,
-  name          text        not null,
-  phone         text        not null,
-  email         text        not null,
+  id                   uuid              primary key default gen_random_uuid(),
+  user_id              uuid,
+  role                 public.user_role  not null,
+  member_number        text,
+  name                 text              not null,
+  phone                text              not null,
+  email                text              not null,
   volunteer_experience text,
   education_experience text,
-  withdrawn_at  timestamptz not null default now(),
-  created_at    timestamptz not null default now(),
+  withdrawn_at         timestamptz       not null default now(),
+  created_at           timestamptz       not null default now(),
   constraint withdrawn_users_role_check
     check (role in ('pending', 'member')),
   constraint withdrawn_users_member_number_format_check
@@ -140,31 +172,31 @@ create index if not exists withdrawn_users_withdrawn_at_idx on public.withdrawn_
 create index if not exists withdrawn_users_email_idx        on public.withdrawn_users(email);
 
 
--- =============================================================================
--- volunteer_activities
--- =============================================================================
+-- ---------------------------------------------------------------------------
+-- 4.3 volunteer_activities
+-- ---------------------------------------------------------------------------
 -- 관리자가 개설하는 봉사활동이다.
 -- 봉사활동과 교육은 구조가 같지만 화면과 관리 경로가 분리되어 있어 별도 테이블로 둔다.
 --
 -- 이미지 파일은 Supabase Storage volunteer bucket에 저장하고,
 -- image_path에는 volunteer bucket 내부 object path만 저장한다.
--- =============================================================================
+-- ---------------------------------------------------------------------------
 
 create table if not exists public.volunteer_activities (
-  id                   uuid        primary key default gen_random_uuid(),
-  title                text        not null,
+  id                   uuid          primary key default gen_random_uuid(),
+  title                text          not null,
   description          text,
   image_path           text,
-  location             text        not null,
-  application_deadline timestamptz not null,
-  starts_at            date        not null,
-  ends_at              date        not null,
-  capacity             integer     not null,    -- 정원 초과 신청 허용; 관리자 판단용 값
-  chat_link            text,                                                  -- 오픈채팅방 링크 (수락된 신청자에게만 표시)
-  created_by           uuid        references public.users(id) on delete set null,
-  updated_by           uuid        references public.users(id) on delete set null,
-  created_at           timestamptz not null default now(),
-  updated_at           timestamptz not null default now(),
+  location             text          not null,
+  application_deadline timestamptz   not null,
+  starts_at            date          not null,
+  ends_at              date          not null,
+  capacity             integer       not null,
+  chat_link            text,
+  created_by           uuid          references public.users(id) on delete set null,
+  updated_by           uuid          references public.users(id) on delete set null,
+  created_at           timestamptz   not null default now(),
+  updated_at           timestamptz   not null default now(),
   constraint volunteer_activities_capacity_check
     check (capacity > 0),
   constraint volunteer_activities_schedule_check
@@ -180,13 +212,13 @@ create table if not exists public.volunteer_activities (
     )
 );
 
-create index if not exists volunteer_activities_deadline_idx on public.volunteer_activities(application_deadline);
+create index if not exists volunteer_activities_deadline_idx  on public.volunteer_activities(application_deadline);
 create index if not exists volunteer_activities_starts_at_idx on public.volunteer_activities(starts_at);
 
 
--- =============================================================================
--- volunteer_applications
--- =============================================================================
+-- ---------------------------------------------------------------------------
+-- 4.4 volunteer_applications
+-- ---------------------------------------------------------------------------
 -- 봉사활동 신청 내역이다.
 -- 한 사용자는 같은 봉사활동에 하나의 신청 row만 가진다.
 --
@@ -194,20 +226,20 @@ create index if not exists volunteer_activities_starts_at_idx on public.voluntee
 --   - 사용자의 신청 취소는 마감 전만 허용해야 하므로
 --     클라이언트 검증 외에 DB 함수 또는 Edge Function에서 검증하는 편이 안전하다.
 --   - 관리자 신청 처리도 상태 전이를 DB 함수 또는 Edge Function에서 검증하는 편이 안전하다.
--- =============================================================================
+-- ---------------------------------------------------------------------------
 
 create table if not exists public.volunteer_applications (
-  id                    uuid                    primary key default gen_random_uuid(),
-  volunteer_activity_id uuid                    not null references public.volunteer_activities(id) on delete cascade,
-  user_id               uuid                    not null references public.users(id) on delete cascade,
+  id                    uuid                      primary key default gen_random_uuid(),
+  volunteer_activity_id uuid                      not null references public.volunteer_activities(id) on delete cascade,
+  user_id               uuid                      not null references public.users(id) on delete cascade,
   status                public.application_status not null default 'pending',
-  decided_at            timestamptz,            -- 수락/거절/관리자 취소 처리 일시
-  decided_by            uuid                    references public.users(id) on delete set null,
+  decided_at            timestamptz,
+  decided_by            uuid                      references public.users(id) on delete set null,
   cancelled_at          timestamptz,
-  cancelled_by          uuid                    references public.users(id) on delete set null,
+  cancelled_by          uuid                      references public.users(id) on delete set null,
   cancellation_reason   text,
-  created_at            timestamptz             not null default now(),
-  updated_at            timestamptz             not null default now(),
+  created_at            timestamptz               not null default now(),
+  updated_at            timestamptz               not null default now(),
   constraint volunteer_applications_unique_user_activity
     unique (volunteer_activity_id, user_id),
   constraint volunteer_applications_pending_check
@@ -243,31 +275,31 @@ create index if not exists volunteer_applications_activity_status_idx on public.
 create index if not exists volunteer_applications_created_at_idx      on public.volunteer_applications(created_at desc);
 
 
--- =============================================================================
--- educations
--- =============================================================================
+-- ---------------------------------------------------------------------------
+-- 4.5 educations
+-- ---------------------------------------------------------------------------
 -- 관리자가 개설하는 교육이다.
 -- 봉사활동과 구조가 같지만 화면과 관리 경로가 분리되어 있어 별도 테이블로 둔다.
 --
 -- 이미지 파일은 Supabase Storage education bucket에 저장하고,
 -- image_path에는 education bucket 내부 object path만 저장한다.
--- =============================================================================
+-- ---------------------------------------------------------------------------
 
 create table if not exists public.educations (
-  id                   uuid        primary key default gen_random_uuid(),
-  title                text        not null,
+  id                   uuid          primary key default gen_random_uuid(),
+  title                text          not null,
   description          text,
   image_path           text,
-  location             text        not null,
-  application_deadline timestamptz not null,
-  starts_at            date        not null,
-  ends_at              date        not null,
-  capacity             integer     not null,    -- 정원 초과 신청 허용; 관리자 판단용 값
-  created_by           uuid        references public.users(id) on delete set null,
-  updated_by           uuid        references public.users(id) on delete set null,
-  chat_link            text,                                                  -- 오픈채팅방 링크 (수락된 신청자에게만 표시)
-  created_at           timestamptz not null default now(),
-  updated_at           timestamptz not null default now(),
+  location             text          not null,
+  application_deadline timestamptz   not null,
+  starts_at            date          not null,
+  ends_at              date          not null,
+  capacity             integer       not null,
+  chat_link            text,
+  created_by           uuid          references public.users(id) on delete set null,
+  updated_by           uuid          references public.users(id) on delete set null,
+  created_at           timestamptz   not null default now(),
+  updated_at           timestamptz   not null default now(),
   constraint educations_capacity_check
     check (capacity > 0),
   constraint educations_schedule_check
@@ -283,13 +315,13 @@ create table if not exists public.educations (
     )
 );
 
-create index if not exists educations_deadline_idx on public.educations(application_deadline);
+create index if not exists educations_deadline_idx  on public.educations(application_deadline);
 create index if not exists educations_starts_at_idx on public.educations(starts_at);
 
 
--- =============================================================================
--- education_applications
--- =============================================================================
+-- ---------------------------------------------------------------------------
+-- 4.6 education_applications
+-- ---------------------------------------------------------------------------
 -- 교육 신청 내역이다.
 -- 한 사용자는 같은 교육에 하나의 신청 row만 가진다.
 --
@@ -297,20 +329,20 @@ create index if not exists educations_starts_at_idx on public.educations(starts_
 --   - 사용자의 신청 취소는 마감 전만 허용해야 하므로
 --     클라이언트 검증 외에 DB 함수 또는 Edge Function에서 검증하는 편이 안전하다.
 --   - 관리자 신청 처리도 상태 전이를 DB 함수 또는 Edge Function에서 검증하는 편이 안전하다.
--- =============================================================================
+-- ---------------------------------------------------------------------------
 
 create table if not exists public.education_applications (
-  id                  uuid                    primary key default gen_random_uuid(),
-  education_id        uuid                    not null references public.educations(id) on delete cascade,
-  user_id             uuid                    not null references public.users(id) on delete cascade,
-  status              public.application_status not null default 'pending',
-  decided_at          timestamptz,            -- 수락/거절/관리자 취소 처리 일시
-  decided_by          uuid                    references public.users(id) on delete set null,
-  cancelled_at        timestamptz,
-  cancelled_by        uuid                    references public.users(id) on delete set null,
-  cancellation_reason text,
-  created_at          timestamptz             not null default now(),
-  updated_at          timestamptz             not null default now(),
+  id                    uuid                      primary key default gen_random_uuid(),
+  education_id          uuid                      not null references public.educations(id) on delete cascade,
+  user_id               uuid                      not null references public.users(id) on delete cascade,
+  status                public.application_status not null default 'pending',
+  decided_at            timestamptz,
+  decided_by            uuid                      references public.users(id) on delete set null,
+  cancelled_at          timestamptz,
+  cancelled_by          uuid                      references public.users(id) on delete set null,
+  cancellation_reason   text,
+  created_at            timestamptz               not null default now(),
+  updated_at            timestamptz               not null default now(),
   constraint education_applications_unique_user_education
     unique (education_id, user_id),
   constraint education_applications_pending_check
@@ -346,8 +378,67 @@ create index if not exists education_applications_education_status_idx on public
 create index if not exists education_applications_created_at_idx       on public.education_applications(created_at desc);
 
 
+-- ---------------------------------------------------------------------------
+-- 4.7 notifications
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.notifications (
+  id         uuid                    primary key default gen_random_uuid(),
+  user_id    uuid                    not null references public.users(id) on delete cascade,
+  type       public.notification_type not null,
+  title      text                    not null,
+  body       text,
+  data       jsonb,
+  is_read    boolean                 not null default false,
+  created_at timestamptz             not null default now(),
+  read_at    timestamptz
+);
+
+create index if not exists idx_notifications_user
+  on public.notifications(user_id, created_at desc);
+
+create index if not exists idx_notifications_unread
+  on public.notifications(user_id) where not is_read;
+
+
+-- ---------------------------------------------------------------------------
+-- 4.8 device_tokens
+-- ---------------------------------------------------------------------------
+-- Web Push 알림용 디바이스 토큰 저장.
+-- endpoint는 고유 식별자로 사용되며(user_id + endpoint unique),
+-- token은 Web Push 인증 정보(jsonb)를 저장한다.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.device_tokens (
+  id         uuid        primary key default gen_random_uuid(),
+  user_id    uuid        not null references public.users(id) on delete cascade,
+  endpoint   text        not null,
+  token      jsonb       not null,
+  platform   text        not null check (platform in ('web', 'ios', 'android')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, endpoint)
+);
+
+create index if not exists idx_device_tokens_user on public.device_tokens(user_id);
+
+
+-- ---------------------------------------------------------------------------
+-- 4.9 push_config
+-- ---------------------------------------------------------------------------
+-- Push 알림에 필요한 설정값(key-value 저장).
+-- send-push Edge Function URL과 VAPID 키를 보관한다.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.push_config (
+  key        text        primary key,
+  value      text        not null,
+  updated_at timestamptz not null default now()
+);
+
+
 -- =============================================================================
--- updated_at Trigger
+-- 5. updated_at Trigger
 -- =============================================================================
 -- 모든 테이블의 updated_at을 자동 갱신하는 공통 함수다.
 -- =============================================================================
@@ -366,7 +457,6 @@ drop trigger if exists set_users_updated_at on public.users;
 create trigger set_users_updated_at
   before update on public.users
   for each row execute function public.set_updated_at();
-
 
 drop trigger if exists set_volunteer_activities_updated_at on public.volunteer_activities;
 create trigger set_volunteer_activities_updated_at
@@ -388,22 +478,29 @@ create trigger set_education_applications_updated_at
   before update on public.education_applications
   for each row execute function public.set_updated_at();
 
+drop trigger if exists set_device_tokens_updated_at on public.device_tokens;
+create trigger set_device_tokens_updated_at
+  before update on public.device_tokens
+  for each row execute function public.set_updated_at();
+
 
 -- =============================================================================
--- RLS 활성화
+-- 6. Row Level Security
 -- =============================================================================
 
 alter table public.users                    enable row level security;
-
 alter table public.withdrawn_users          enable row level security;
 alter table public.volunteer_activities     enable row level security;
 alter table public.volunteer_applications   enable row level security;
 alter table public.educations               enable row level security;
 alter table public.education_applications   enable row level security;
+alter table public.notifications            enable row level security;
+alter table public.device_tokens            enable row level security;
+alter table public.push_config              enable row level security;
 
 
 -- =============================================================================
--- Data API Grants
+-- 7. Data API Grants
 -- =============================================================================
 -- RLS가 row 접근을 제한하고, GRANT는 authenticated 역할이 Data API로 접근할 수
 -- 있는 객체 범위를 제한한다. anon은 현재 공개 데이터 접근 요구가 없어 부여하지 않는다.
@@ -412,17 +509,21 @@ alter table public.education_applications   enable row level security;
 grant usage on schema public to authenticated;
 grant usage on type public.user_role to authenticated;
 grant usage on type public.application_status to authenticated;
+grant usage on type public.notification_type to authenticated;
 
-grant select, insert, update on table public.users to authenticated;
-grant select on table public.withdrawn_users to authenticated;
-grant select, insert, update, delete on table public.volunteer_activities to authenticated;
-grant select, insert, update on table public.volunteer_applications to authenticated;
-grant select, insert, update, delete on table public.educations to authenticated;
-grant select, insert, update on table public.education_applications to authenticated;
+grant select, insert, update on table public.users                to authenticated;
+grant select on table public.withdrawn_users                      to authenticated;
+grant select, insert, update, delete on table public.volunteer_activities   to authenticated;
+grant select, insert, update on table public.volunteer_applications         to authenticated;
+grant select, insert, update, delete on table public.educations             to authenticated;
+grant select, insert, update on table public.education_applications         to authenticated;
+grant select, update on table public.notifications                to authenticated;
+grant select, insert, update, delete on table public.device_tokens          to authenticated;
+grant select on table public.push_config                          to anon, authenticated;
 
 
 -- =============================================================================
--- 관리자 판별 헬퍼 함수
+-- 8. Helper Functions (private schema)
 -- =============================================================================
 -- users 테이블 정책에서 재귀가 발생하지 않도록 private 스키마에 둔다.
 -- authenticated 역할에만 execute 권한을 부여하고 public에는 노출하지 않는다.
@@ -468,7 +569,7 @@ grant execute on function private.is_admin() to authenticated;
 
 
 -- =============================================================================
--- RPC Functions
+-- 9. RPC Functions
 -- =============================================================================
 -- 권한이 중요한 상태 전이는 클라이언트의 직접 update 대신 함수로 처리한다.
 -- =============================================================================
@@ -592,18 +693,19 @@ begin
 end;
 $$;
 
-drop function if exists public.update_own_profile(text, text, text, text, text, text, text, text, text, text);
+drop function if exists public.update_own_profile(text, text, text, text, text, text, text, text, text, text, date);
 create function public.update_own_profile(
-  new_name text,
-  new_phone text,
-  new_email text,
-  new_address text,
-  new_workplace_or_school text,
-  new_address_detail text default '',
-  new_license_number text default null,
-  new_volunteer_experience text default null,
-  new_education_experience text default null,
-  new_avatar_path text default null
+  new_name                  text,
+  new_phone                 text,
+  new_email                 text,
+  new_address               text,
+  new_workplace_or_school   text,
+  new_address_detail        text default '',
+  new_license_number        text default null,
+  new_volunteer_experience  text default null,
+  new_education_experience  text default null,
+  new_avatar_path           text default null,
+  new_birthday              date default null
 )
 returns void
 language plpgsql
@@ -623,6 +725,7 @@ begin
       address_detail = new_address_detail,
       workplace_or_school = new_workplace_or_school,
       license_number = new_license_number,
+      birthday = new_birthday,
       volunteer_experience = new_volunteer_experience,
       education_experience = new_education_experience,
       avatar_path = new_avatar_path
@@ -632,6 +735,58 @@ begin
   if not found then
     raise exception 'profile cannot be updated';
   end if;
+end;
+$$;
+
+create or replace function public.cancel_registration()
+returns void
+language plpgsql
+security definer
+set search_path = auth, public
+as $$
+begin
+  delete from auth.users where id = (select auth.uid());
+end;
+$$;
+
+create or replace function public.withdraw_current_user()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_profile public.users%rowtype;
+begin
+  select *
+  into current_profile
+  from public.users
+  where id = (select auth.uid())
+    and role in ('pending', 'member')
+  for update;
+
+  if not found then
+    raise exception 'active withdrawable user required';
+  end if;
+
+  insert into public.withdrawn_users (
+    user_id, role, member_number, name, phone, email,
+    volunteer_experience, education_experience, withdrawn_at
+  )
+  values (
+    current_profile.id,
+    current_profile.role,
+    current_profile.member_number,
+    current_profile.name,
+    current_profile.phone,
+    current_profile.email,
+    current_profile.volunteer_experience,
+    current_profile.education_experience,
+    now()
+  );
+
+  delete from public.users
+  where id = current_profile.id;
 end;
 $$;
 
@@ -660,54 +815,6 @@ begin
   if not found then
     raise exception 'volunteer application cannot be cancelled';
   end if;
-end;
-$$;
-
-create or replace function public.withdraw_current_user()
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  current_profile public.users%rowtype;
-begin
-  select *
-  into current_profile
-  from public.users
-  where id = (select auth.uid())
-    and role in ('pending', 'member')
-  for update;
-
-  if not found then
-    raise exception 'active withdrawable user required';
-  end if;
-
-  insert into public.withdrawn_users (
-    user_id,
-    role,
-    member_number,
-    name,
-    phone,
-    email,
-    volunteer_experience,
-    education_experience,
-    withdrawn_at
-  )
-  values (
-    current_profile.id,
-    current_profile.role,
-    current_profile.member_number,
-    current_profile.name,
-    current_profile.phone,
-    current_profile.email,
-    current_profile.volunteer_experience,
-    current_profile.education_experience,
-    now()
-  );
-
-  delete from public.users
-  where id = current_profile.id;
 end;
 $$;
 
@@ -885,22 +992,10 @@ begin
 end;
 $$;
 
-drop function if exists public.cancel_registration();
-create function public.cancel_registration()
-returns void
-language plpgsql
-security definer
-set search_path = auth, public
-as $$
-begin
-  delete from auth.users where id = (select auth.uid());
-end;
-$$;
-
 revoke all on function public.cancel_registration() from public;
 revoke all on function public.approve_member(uuid, text) from public;
 revoke all on function public.grant_admin(uuid, text) from public;
-revoke all on function public.update_own_profile(text, text, text, text, text, text, text, text, text, text) from public;
+revoke all on function public.update_own_profile(text, text, text, text, text, text, text, text, text, text, date) from public;
 revoke all on function public.cancel_own_volunteer_application(uuid) from public;
 revoke all on function public.withdraw_current_user() from public;
 revoke all on function public.cancel_own_education_application(uuid) from public;
@@ -910,7 +1005,7 @@ revoke all on function public.decide_education_application(uuid, public.applicat
 grant execute on function public.cancel_registration() to authenticated;
 grant execute on function public.approve_member(uuid, text) to authenticated;
 grant execute on function public.grant_admin(uuid, text) to authenticated;
-grant execute on function public.update_own_profile(text, text, text, text, text, text, text, text, text, text) to authenticated;
+grant execute on function public.update_own_profile(text, text, text, text, text, text, text, text, text, text, date) to authenticated;
 grant execute on function public.cancel_own_volunteer_application(uuid) to authenticated;
 grant execute on function public.withdraw_current_user() to authenticated;
 grant execute on function public.cancel_own_education_application(uuid) to authenticated;
@@ -919,12 +1014,488 @@ grant execute on function public.decide_education_application(uuid, public.appli
 
 
 -- =============================================================================
--- RLS Policies
+-- 10. Notification Helpers & Triggers
 -- =============================================================================
 
--- users
--- 일반 사용자의 프로필 수정은 role/member_number 변경을 막기 위해
--- 별도 RPC 또는 컬럼 권한으로 제한한다.
+-- ---------------------------------------------------------------------------
+-- 10.1 Helper: 단일 알림 생성
+-- ---------------------------------------------------------------------------
+
+create or replace function public.create_notification(
+  p_user_id  uuid,
+  p_type     public.notification_type,
+  p_title    text,
+  p_body     text default null,
+  p_data     jsonb default null
+)
+returns public.notifications
+language plpgsql
+security definer
+as $$
+declare
+  v_notification public.notifications;
+begin
+  insert into public.notifications (user_id, type, title, body, data)
+  values (p_user_id, p_type, p_title, p_body, p_data)
+  returning * into v_notification;
+
+  return v_notification;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 10.2 Helper: 조건에 맞는 사용자(준회원+정회원) 전체에게 알림 생성
+-- ---------------------------------------------------------------------------
+
+create or replace function public.notify_all_members(
+  p_type  public.notification_type,
+  p_title text,
+  p_body  text default null,
+  p_data  jsonb default null
+)
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  insert into public.notifications (user_id, type, title, body, data)
+  select u.id, p_type, p_title, p_body, p_data
+  from public.users u
+  where u.role in ('pending', 'member');
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 10.3 Helper: 전체 관리자에게 알림 생성
+-- ---------------------------------------------------------------------------
+
+create or replace function public.notify_all_admins(
+  p_type  public.notification_type,
+  p_title text,
+  p_body  text default null,
+  p_data  jsonb default null
+)
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  insert into public.notifications (user_id, type, title, body, data)
+  select u.id, p_type, p_title, p_body, p_data
+  from public.users u
+  where u.role = 'admin';
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 10.4 Trigger: 새 봉사활동/교육 생성 → 전체 준회원/정회원 알림
+-- ---------------------------------------------------------------------------
+
+create or replace function public.on_activity_created()
+returns trigger
+language plpgsql
+security definer
+as $$
+declare
+  v_kind text;
+begin
+  if tg_table_name = 'volunteer_activities' then
+    v_kind := 'volunteer';
+  elsif tg_table_name = 'educations' then
+    v_kind := 'education';
+  else
+    return new;
+  end if;
+
+  perform public.notify_all_members(
+    'new_activity',
+    '새 ' || case when v_kind = 'volunteer' then '봉사활동' else '교육' end || '이 개설되었습니다',
+    new.title,
+    jsonb_build_object('activity_id', new.id, 'kind', v_kind)
+  );
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_volunteer_activity_created_notify on public.volunteer_activities;
+create trigger trg_volunteer_activity_created_notify
+  after insert on public.volunteer_activities
+  for each row
+  execute function public.on_activity_created();
+
+drop trigger if exists trg_education_created_notify on public.educations;
+create trigger trg_education_created_notify
+  after insert on public.educations
+  for each row
+  execute function public.on_activity_created();
+
+-- ---------------------------------------------------------------------------
+-- 10.5 Trigger: 신청 수락/거절 → 신청자 알림
+-- ---------------------------------------------------------------------------
+
+create or replace function public.on_application_decided()
+returns trigger
+language plpgsql
+security definer
+as $$
+declare
+  v_activity_title text;
+  v_kind           text;
+  v_type           public.notification_type;
+  v_title          text;
+  v_body           text;
+  v_data           jsonb;
+begin
+  if old.status = new.status then
+    return new;
+  end if;
+
+  if tg_table_name = 'volunteer_applications' then
+    select title into v_activity_title
+    from public.volunteer_activities
+    where id = new.volunteer_activity_id;
+    v_kind := 'volunteer';
+    v_data := jsonb_build_object(
+      'activity_id', new.volunteer_activity_id,
+      'application_id', new.id,
+      'kind', v_kind
+    );
+  elsif tg_table_name = 'education_applications' then
+    select title into v_activity_title
+    from public.educations
+    where id = new.education_id;
+    v_kind := 'education';
+    v_data := jsonb_build_object(
+      'activity_id', new.education_id,
+      'application_id', new.id,
+      'kind', v_kind
+    );
+  else
+    return new;
+  end if;
+
+  case new.status
+    when 'accepted' then
+      v_type := 'application_accepted';
+      v_title := '신청이 수락되었습니다';
+      v_body := '"' || v_activity_title || '" 활동의 신청이 수락되었습니다.';
+    when 'rejected' then
+      v_type := 'application_rejected';
+      v_title := '신청이 거절되었습니다';
+      v_body := '"' || v_activity_title || '" 활동의 신청이 거절되었습니다.';
+    else
+      return new;
+  end case;
+
+  perform public.create_notification(new.user_id, v_type, v_title, v_body, v_data);
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_volunteer_application_decided_notify on public.volunteer_applications;
+create trigger trg_volunteer_application_decided_notify
+  after update of status on public.volunteer_applications
+  for each row
+  when (old.status is distinct from new.status
+    and new.status in ('accepted', 'rejected'))
+  execute function public.on_application_decided();
+
+drop trigger if exists trg_education_application_decided_notify on public.education_applications;
+create trigger trg_education_application_decided_notify
+  after update of status on public.education_applications
+  for each row
+  when (old.status is distinct from new.status
+    and new.status in ('accepted', 'rejected'))
+  execute function public.on_application_decided();
+
+-- ---------------------------------------------------------------------------
+-- 10.6 Trigger: 정회원 승급 → 본인 알림
+-- ---------------------------------------------------------------------------
+
+create or replace function public.on_member_approved()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  if new.role = 'member' and (old.role is distinct from 'member') then
+    perform public.create_notification(
+      new.id,
+      'member_approved',
+      '정회원 승급이 완료되었습니다',
+      '회원번호 ' || new.member_number || '로 승급되었습니다. 이제 모든 활동에 신청할 수 있습니다.',
+      jsonb_build_object('member_number', new.member_number)
+    );
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_member_approved_notify on public.users;
+create trigger trg_member_approved_notify
+  after update of role on public.users
+  for each row
+  when (new.role = 'member' and old.role is distinct from 'member')
+  execute function public.on_member_approved();
+
+-- ---------------------------------------------------------------------------
+-- 10.7 Trigger: 새 회원 가입 → 전체 관리자 알림
+-- ---------------------------------------------------------------------------
+
+create or replace function public.on_user_registered()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  if new.role = 'pending' then
+    perform public.notify_all_admins(
+      'new_member_registered',
+      '새 회원이 가입했습니다',
+      new.name || '님이 가입했습니다. 승인을 진행해 주세요.',
+      jsonb_build_object('user_id', new.id, 'user_name', new.name)
+    );
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_user_registered_notify on public.users;
+create trigger trg_user_registered_notify
+  after insert on public.users
+  for each row
+  when (new.role = 'pending')
+  execute function public.on_user_registered();
+
+-- ---------------------------------------------------------------------------
+-- 10.8 Trigger: 새 관리자 발생 → 기존 관리자 알림
+-- ---------------------------------------------------------------------------
+
+create or replace function public.on_admin_granted()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  if new.role = 'admin' and (old.role is distinct from 'admin') then
+    perform public.notify_all_admins(
+      'new_admin_granted',
+      '새 관리자가 생겼습니다',
+      old.name || '님(' || old.member_number || ')이 관리자로 부여되었습니다.',
+      jsonb_build_object('user_id', new.id, 'user_name', old.name)
+    );
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_admin_granted_notify on public.users;
+create trigger trg_admin_granted_notify
+  after update of role on public.users
+  for each row
+  when (new.role = 'admin' and old.role is distinct from 'admin')
+  execute function public.on_admin_granted();
+
+-- ---------------------------------------------------------------------------
+-- 10.9 Trigger: 신청 수락 시 정원 도달 확인 → 관리자 알림
+-- ---------------------------------------------------------------------------
+
+create or replace function public.on_application_capacity_check()
+returns trigger
+language plpgsql
+security definer
+as $$
+declare
+  v_activity_id    uuid;
+  v_capacity       integer;
+  v_accepted_count integer;
+  v_activity_title text;
+  v_kind           text;
+begin
+  if new.status != 'accepted' or old.status = 'accepted' then
+    return new;
+  end if;
+
+  if tg_table_name = 'volunteer_applications' then
+    v_kind := 'volunteer';
+    v_activity_id := new.volunteer_activity_id;
+
+    select capacity, title into v_capacity, v_activity_title
+    from public.volunteer_activities
+    where id = v_activity_id;
+
+    select count(*) into v_accepted_count
+    from public.volunteer_applications
+    where volunteer_activity_id = v_activity_id and status = 'accepted';
+  elsif tg_table_name = 'education_applications' then
+    v_kind := 'education';
+    v_activity_id := new.education_id;
+
+    select capacity, title into v_capacity, v_activity_title
+    from public.educations
+    where id = v_activity_id;
+
+    select count(*) into v_accepted_count
+    from public.education_applications
+    where education_id = v_activity_id and status = 'accepted';
+  else
+    return new;
+  end if;
+
+  if v_accepted_count >= v_capacity then
+    perform public.notify_all_admins(
+      'activity_capacity_full',
+      '정원이 모두 채워졌습니다',
+      '"' || v_activity_title || '" ' || case when v_kind = 'volunteer' then '봉사활동' else '교육' end || '의 정원이 모두 채워졌습니다.',
+      jsonb_build_object('activity_id', v_activity_id, 'kind', v_kind, 'capacity', v_capacity)
+    );
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_volunteer_capacity_check on public.volunteer_applications;
+create trigger trg_volunteer_capacity_check
+  after update of status on public.volunteer_applications
+  for each row
+  when (new.status = 'accepted' and old.status is distinct from 'accepted')
+  execute function public.on_application_capacity_check();
+
+drop trigger if exists trg_education_capacity_check on public.education_applications;
+create trigger trg_education_capacity_check
+  after update of status on public.education_applications
+  for each row
+  when (new.status = 'accepted' and old.status is distinct from 'accepted')
+  execute function public.on_application_capacity_check();
+
+
+-- =============================================================================
+-- 11. 마감 임박 알림 (deadline_approaching)
+-- =============================================================================
+-- 시간 기반 알림은 DB 트리거로 처리 불가.
+-- 아래 함수를 pg_cron이 매시간 실행함.
+-- =============================================================================
+
+create or replace function public.process_deadline_approaching(p_hours integer)
+returns void
+language plpgsql
+security definer
+as $$
+declare
+  v_target timestamptz;
+  r record;
+begin
+  v_target := date_trunc('hour', now()) + make_time(0, 0, 0) + (p_hours || ' hours')::interval;
+
+  for r in
+    select id, title, 'volunteer' as kind from public.volunteer_activities
+    where application_deadline > now()
+      and application_deadline <= v_target + interval '1 hour'
+      and application_deadline > v_target - interval '1 hour'
+      and not exists (
+        select 1 from public.notifications
+        where type = 'deadline_approaching'
+          and data->>'activity_id' = id::text
+          and data->>'hours' = p_hours::text
+      )
+    union all
+    select id, title, 'education' as kind from public.educations
+    where application_deadline > now()
+      and application_deadline <= v_target + interval '1 hour'
+      and application_deadline > v_target - interval '1 hour'
+      and not exists (
+        select 1 from public.notifications
+        where type = 'deadline_approaching'
+          and data->>'activity_id' = id::text
+          and data->>'hours' = p_hours::text
+      )
+  loop
+    perform public.notify_all_members(
+      'deadline_approaching',
+      '마감이 ' || p_hours || '시간 남았습니다',
+      '"' || r.title || '" ' || case when r.kind = 'volunteer' then '봉사활동' else '교육' end || '의 신청 마감이 ' || p_hours || '시간 남았습니다.',
+      jsonb_build_object('activity_id', r.id, 'kind', r.kind, 'hours', p_hours)
+    );
+
+    perform public.notify_all_admins(
+      'deadline_approaching',
+      '마감이 ' || p_hours || '시간 남았습니다',
+      '"' || r.title || '" ' || case when r.kind = 'volunteer' then '봉사활동' else '교육' end || '의 신청 마감이 ' || p_hours || '시간 남았습니다.',
+      jsonb_build_object('activity_id', r.id, 'kind', r.kind, 'hours', p_hours)
+    );
+  end loop;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Push Webhook: notifications INSERT → Supabase Edge Function(send-push)
+-- ---------------------------------------------------------------------------
+-- 최초 설정 (VAPID 키는 web-push generateVAPIDKeys()로 생성):
+--   insert into public.push_config(key, value) values
+--     ('send_push_url',   'https://lxjtnvspnrwkuldjidla.supabase.co/functions/v1/send-push'),
+--     ('vapid_public_key', 'BNLyoeMxYnFD3OQBOkv-LdPAkzElOxDvhe8YBjyM6VKISN9mqzv0ZziTu-eBwxragkp0Ot2H3byXgmtMxT5ChiE'),
+--     ('vapid_private_key',''),
+--     ('vapid_subject',    'mailto:admin@volunteer-app.com')
+--   on conflict (key) do update set value = excluded.value, updated_at = now();
+-- ---------------------------------------------------------------------------
+
+create extension if not exists pg_net with schema extensions;
+
+create or replace function public.invoke_send_push()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_url text;
+begin
+  select value into v_url
+  from public.push_config
+  where key = 'send_push_url';
+
+  if nullif(v_url, '') is null then
+    return new;
+  end if;
+
+  perform net.http_post(
+    url := v_url,
+    headers := jsonb_build_object('Content-Type', 'application/json'),
+    body := jsonb_build_object(
+      'type', tg_op,
+      'table', tg_table_name,
+      'schema', tg_table_schema,
+      'record', to_jsonb(new),
+      'old_record', null
+    ),
+    timeout_milliseconds := 1000
+  );
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_notifications_send_push on public.notifications;
+create trigger trg_notifications_send_push
+  after insert on public.notifications
+  for each row
+  execute function public.invoke_send_push();
+
+
+-- =============================================================================
+-- 12. RLS Policies
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- 12.1 users
+-- ---------------------------------------------------------------------------
+
 drop policy if exists "Users can read own profile" on public.users;
 create policy "Users can read own profile"
   on public.users for select
@@ -956,7 +1527,10 @@ create policy "Admins can update users"
   using (private.is_admin())
   with check (private.is_admin());
 
--- volunteer_activities
+-- ---------------------------------------------------------------------------
+-- 12.2 volunteer_activities
+-- ---------------------------------------------------------------------------
+
 drop policy if exists "Active users can read volunteer activities" on public.volunteer_activities;
 create policy "Active users can read volunteer activities"
   on public.volunteer_activities for select
@@ -988,7 +1562,10 @@ create policy "Admins can delete volunteer activities"
   to authenticated
   using (private.is_admin());
 
--- educations
+-- ---------------------------------------------------------------------------
+-- 12.3 educations
+-- ---------------------------------------------------------------------------
+
 drop policy if exists "Active users can read educations" on public.educations;
 create policy "Active users can read educations"
   on public.educations for select
@@ -1020,8 +1597,10 @@ create policy "Admins can delete educations"
   to authenticated
   using (private.is_admin());
 
--- volunteer_applications
--- 신청 취소와 관리자 상태 처리는 RPC 함수로 상태 전이를 검증한다.
+-- ---------------------------------------------------------------------------
+-- 12.4 volunteer_applications
+-- ---------------------------------------------------------------------------
+
 drop policy if exists "Users can read own volunteer applications" on public.volunteer_applications;
 create policy "Users can read own volunteer applications"
   on public.volunteer_applications for select
@@ -1049,10 +1628,29 @@ create policy "Users can apply to volunteer activities"
     )
   );
 
--- Application state changes are restricted to RPC functions.
+drop policy if exists "Users can re-apply after cancellation" on public.volunteer_applications;
+create policy "Users can re-apply after cancellation"
+  on public.volunteer_applications for update
+  to authenticated
+  using (
+    user_id = (select auth.uid())
+    and status = 'cancelled'
+    and private.is_active_user()
+  )
+  with check (
+    status = 'pending'
+    and user_id = (select auth.uid())
+    and exists (
+      select 1 from public.volunteer_activities
+      where id = volunteer_activity_id
+        and application_deadline > now()
+    )
+  );
 
--- education_applications
--- 신청 취소와 관리자 상태 처리는 RPC 함수로 상태 전이를 검증한다.
+-- ---------------------------------------------------------------------------
+-- 12.5 education_applications
+-- ---------------------------------------------------------------------------
+
 drop policy if exists "Users can read own education applications" on public.education_applications;
 create policy "Users can read own education applications"
   on public.education_applications for select
@@ -1080,28 +1678,6 @@ create policy "Users can apply to educations"
     )
   );
 
--- Application state changes are restricted to RPC functions.
-
--- Re-apply after self-cancellation
-drop policy if exists "Users can re-apply after cancellation" on public.volunteer_applications;
-create policy "Users can re-apply after cancellation"
-  on public.volunteer_applications for update
-  to authenticated
-  using (
-    user_id = (select auth.uid())
-    and status = 'cancelled'
-    and private.is_active_user()
-  )
-  with check (
-    status = 'pending'
-    and user_id = (select auth.uid())
-    and exists (
-      select 1 from public.volunteer_activities
-      where id = volunteer_activity_id
-        and application_deadline > now()
-    )
-  );
-
 drop policy if exists "Users can re-apply after cancellation" on public.education_applications;
 create policy "Users can re-apply after cancellation"
   on public.education_applications for update
@@ -1121,145 +1697,196 @@ create policy "Users can re-apply after cancellation"
     )
   );
 
--- withdrawn_users / member_number_sequences
+-- ---------------------------------------------------------------------------
+-- 12.6 withdrawn_users
+-- ---------------------------------------------------------------------------
+
 drop policy if exists "Admins can read withdrawn users" on public.withdrawn_users;
 create policy "Admins can read withdrawn users"
   on public.withdrawn_users for select
   to authenticated
   using (private.is_admin());
 
--- =============================================================================
--- Storage Policies
--- =============================================================================
--- Supabase Storage buckets: volunteer, education
--- Public bucket으로 생성하고, 파일 조회는 공개 URL을 사용한다.
--- 업로드/교체/삭제는 관리자만 허용한다.
--- storage.objects는 Storage 파일 메타데이터 테이블로,
--- 각 파일의 경로/크기/타입 등을 저장하며 RLS로 접근을 제어한다.
--- =============================================================================
+-- ---------------------------------------------------------------------------
+-- 12.7 notifications
+-- ---------------------------------------------------------------------------
+
+drop policy if exists "notifications_select_own" on public.notifications;
+create policy "notifications_select_own"
+  on public.notifications for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "notifications_update_own" on public.notifications;
+create policy "notifications_update_own"
+  on public.notifications for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "notifications_insert_service" on public.notifications;
+create policy "notifications_insert_service"
+  on public.notifications for insert
+  with check (true);
+
+-- ---------------------------------------------------------------------------
+-- 12.8 device_tokens
+-- ---------------------------------------------------------------------------
+
+drop policy if exists "device_tokens_select_own" on public.device_tokens;
+create policy "device_tokens_select_own"
+  on public.device_tokens for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "device_tokens_insert_own" on public.device_tokens;
+create policy "device_tokens_insert_own"
+  on public.device_tokens for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "device_tokens_update_own" on public.device_tokens;
+create policy "device_tokens_update_own"
+  on public.device_tokens for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "device_tokens_delete_own" on public.device_tokens;
+create policy "device_tokens_delete_own"
+  on public.device_tokens for delete
+  using (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+-- 12.9 push_config
+-- ---------------------------------------------------------------------------
+
+drop policy if exists "push_config_select_public_key" on public.push_config;
+create policy "push_config_select_public_key"
+  on public.push_config for select
+  using (key = 'vapid_public_key');
+
 
 -- =============================================================================
--- volunteer bucket
+-- 13. Storage Policies
 -- =============================================================================
+-- Supabase Storage buckets: volunteer, education, avatars
+-- Public bucket으로 생성하고, 파일 조회는 공개 URL을 사용한다.
+-- 업로드/교체/삭제는 관리자만 허용한다(avatars는 모든 인증 사용자 허용).
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- 13.1 volunteer bucket
+-- ---------------------------------------------------------------------------
 
 drop policy if exists "Anyone can read volunteer bucket objects" on storage.objects;
 create policy "Anyone can read volunteer bucket objects"
   on storage.objects for select
-  using (
-    bucket_id = 'volunteer'
-  );
+  using (bucket_id = 'volunteer');
 
 drop policy if exists "Admins can upload volunteer bucket objects" on storage.objects;
 create policy "Admins can upload volunteer bucket objects"
   on storage.objects for insert
   to authenticated
-  with check (
-    bucket_id = 'volunteer'
-    and private.is_admin()
-  );
+  with check (bucket_id = 'volunteer' and private.is_admin());
 
 drop policy if exists "Admins can update volunteer bucket objects" on storage.objects;
 create policy "Admins can update volunteer bucket objects"
   on storage.objects for update
   to authenticated
-  using (
-    bucket_id = 'volunteer'
-    and private.is_admin()
-  )
-  with check (
-    bucket_id = 'volunteer'
-    and private.is_admin()
-  );
+  using (bucket_id = 'volunteer' and private.is_admin())
+  with check (bucket_id = 'volunteer' and private.is_admin());
 
 drop policy if exists "Admins can delete volunteer bucket objects" on storage.objects;
 create policy "Admins can delete volunteer bucket objects"
   on storage.objects for delete
   to authenticated
-  using (
-    bucket_id = 'volunteer'
-    and private.is_admin()
-  );
+  using (bucket_id = 'volunteer' and private.is_admin());
 
--- =============================================================================
--- education bucket
--- =============================================================================
+-- ---------------------------------------------------------------------------
+-- 13.2 education bucket
+-- ---------------------------------------------------------------------------
 
 drop policy if exists "Anyone can read education bucket objects" on storage.objects;
 create policy "Anyone can read education bucket objects"
   on storage.objects for select
-  using (
-    bucket_id = 'education'
-  );
+  using (bucket_id = 'education');
 
 drop policy if exists "Admins can upload education bucket objects" on storage.objects;
 create policy "Admins can upload education bucket objects"
   on storage.objects for insert
   to authenticated
-  with check (
-    bucket_id = 'education'
-    and private.is_admin()
-  );
+  with check (bucket_id = 'education' and private.is_admin());
 
 drop policy if exists "Admins can update education bucket objects" on storage.objects;
 create policy "Admins can update education bucket objects"
   on storage.objects for update
   to authenticated
-  using (
-    bucket_id = 'education'
-    and private.is_admin()
-  )
-  with check (
-    bucket_id = 'education'
-    and private.is_admin()
-  );
+  using (bucket_id = 'education' and private.is_admin())
+  with check (bucket_id = 'education' and private.is_admin());
 
 drop policy if exists "Admins can delete education bucket objects" on storage.objects;
 create policy "Admins can delete education bucket objects"
   on storage.objects for delete
   to authenticated
-  using (
-    bucket_id = 'education'
-    and private.is_admin()
-  );
+  using (bucket_id = 'education' and private.is_admin());
 
--- =============================================================================
--- avatars bucket
--- =============================================================================
+-- ---------------------------------------------------------------------------
+-- 13.3 avatars bucket
+-- ---------------------------------------------------------------------------
 
 drop policy if exists "Anyone can read avatars bucket objects" on storage.objects;
 create policy "Anyone can read avatars bucket objects"
   on storage.objects for select
-  using (
-    bucket_id = 'avatars'
-  );
+  using (bucket_id = 'avatars');
 
 drop policy if exists "Authenticated users can upload avatars bucket objects" on storage.objects;
 create policy "Authenticated users can upload avatars bucket objects"
   on storage.objects for insert
   to authenticated
-  with check (
-    bucket_id = 'avatars'
-    and auth.role() = 'authenticated'
-  );
+  with check (bucket_id = 'avatars' and auth.role() = 'authenticated');
 
 drop policy if exists "Authenticated users can update avatars bucket objects" on storage.objects;
 create policy "Authenticated users can update avatars bucket objects"
   on storage.objects for update
   to authenticated
-  using (
-    bucket_id = 'avatars'
-    and auth.role() = 'authenticated'
-  )
-  with check (
-    bucket_id = 'avatars'
-    and auth.role() = 'authenticated'
-  );
+  using (bucket_id = 'avatars' and auth.role() = 'authenticated')
+  with check (bucket_id = 'avatars' and auth.role() = 'authenticated');
 
 drop policy if exists "Authenticated users can delete avatars bucket objects" on storage.objects;
 create policy "Authenticated users can delete avatars bucket objects"
   on storage.objects for delete
   to authenticated
-  using (
-    bucket_id = 'avatars'
-    and auth.role() = 'authenticated'
-  );
+  using (bucket_id = 'avatars' and auth.role() = 'authenticated');
+
+
+-- =============================================================================
+-- 14. Realtime & Cron
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- 14.1 Realtime: notifications
+-- ---------------------------------------------------------------------------
+
+alter publication supabase_realtime add table public.notifications;
+
+-- ---------------------------------------------------------------------------
+-- 14.2 pg_cron: 마감 임박 알림 스케줄 (매시간 정각 실행)
+-- ---------------------------------------------------------------------------
+
+do $$
+begin
+  perform cron.unschedule('deadline-24h');
+  perform cron.schedule('deadline-24h', '0 * * * *', $sql$
+    select public.process_deadline_approaching(24);
+  $sql$);
+exception
+  when others then null;
+end;
+$$;
+
+do $$
+begin
+  perform cron.unschedule('deadline-6h');
+  perform cron.schedule('deadline-6h', '0 * * * *', $sql$
+    select public.process_deadline_approaching(6);
+  $sql$);
+exception
+  when others then null;
+end;
+$$;

@@ -15,6 +15,7 @@ export default function MyPageEditPage({ profile }) {
     address: profile.address ?? '',
     workplace_or_school: profile.workplace_or_school ?? '',
     license_number: profile.license_number ?? '',
+    birthday: profile.birthday ?? '',
     volunteer_experience: profile.volunteer_experience ?? '',
     education_experience: profile.education_experience ?? '',
   })
@@ -55,6 +56,7 @@ export default function MyPageEditPage({ profile }) {
     const address_detail = detailAddress.trim()
     const workplace_or_school = form.workplace_or_school.trim()
     const license_number = form.license_number.trim()
+    const birthday = form.birthday || null
     const volunteer_experience = form.volunteer_experience.trim() || null
     const education_experience = form.education_experience.trim() || null
 
@@ -86,6 +88,7 @@ export default function MyPageEditPage({ profile }) {
         address_detail: address_detail || '',
         workplace_or_school,
         license_number: license_number || null,
+        birthday,
         volunteer_experience,
         education_experience,
         avatar_path,
@@ -252,6 +255,16 @@ export default function MyPageEditPage({ profile }) {
               onChange={updateField}
               inputMode="numeric"
             />
+        </label>
+        <label className="grid gap-2 text-xs font-semibold text-text-secondary">
+          생년월일
+          <input
+            className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+            name="birthday"
+            type="date"
+            value={form.birthday}
+            onChange={updateField}
+          />
         </label>
         <label className="col-span-full grid gap-2 text-xs font-semibold text-text-secondary">
           봉사활동 이력

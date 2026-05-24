@@ -1,5 +1,5 @@
 Design for mobile first (phone screen as baseline).
-Ensure layout does not break on desktop — use responsive design (e.g., max-width containers, flexbox/grid that scale up gracefully).
+Ensure layout does not break on desktop — use responsive design.
 
 Don't use TDD if user doesn't comment
 Use UTF-8

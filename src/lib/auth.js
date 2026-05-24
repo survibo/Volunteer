@@ -116,6 +116,7 @@ export async function updateOwnProfile(payload) {
     new_volunteer_experience: payload.volunteer_experience,
     new_education_experience: payload.education_experience,
     new_avatar_path: payload.avatar_path ?? null,
+    new_birthday: payload.birthday || null,
   })
 
   if (error) {
