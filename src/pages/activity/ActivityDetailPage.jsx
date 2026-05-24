@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Link as LinkIcon, Pencil, Users } from "lucide-react";
+import { signInWithOAuth } from "../../lib/auth";
+import { isInAppBrowser } from "../../lib/detectBrowser";
+import InAppBrowserWarning from "../../components/InAppBrowserWarning";
 import {
   getActivityConfig,
   getActivityKind,
@@ -31,6 +34,7 @@ export default function ActivityDetailPage({ table, profile }) {
   const [linkCopied, setLinkCopied] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showInAppWarning, setShowInAppWarning] = useState(false);
 
   const {
     data: activity,
@@ -261,12 +265,19 @@ export default function ActivityDetailPage({ table, profile }) {
             {applyMutation.isPending ? "신청 중" : "신청하기"}
           </button>
         ) : (
-          <Link
-            className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover md:w-auto"
-            to={`/?redirect=${encodeURIComponent(window.location.pathname)}`}
+          <button
+            className="min-h-[44px] w-full cursor-pointer rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover md:w-auto"
+            type="button"
+            onClick={() => {
+              if (isInAppBrowser()) {
+                setShowInAppWarning(true)
+              } else {
+                signInWithOAuth('google', window.location.pathname)
+              }
+            }}
           >
             로그인하고 신청하기
-          </Link>
+          </button>
         )
       ) : null}
       {showCancelModal && (
@@ -314,6 +325,7 @@ export default function ActivityDetailPage({ table, profile }) {
           onClose={() => setViewerIndex(null)}
         />
       )}
+      {showInAppWarning && <InAppBrowserWarning onClose={() => setShowInAppWarning(false)} />}
     </section>
   );
 }
