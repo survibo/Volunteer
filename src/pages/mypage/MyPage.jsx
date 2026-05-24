@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { signOut, withdrawCurrentUser } from "../../lib/auth";
 import { deleteCurrentPushSubscription } from "../../lib/pushNotifications";
 import { downloadMemberCert } from "../../lib/pdfCert";
@@ -16,6 +17,7 @@ function formatDate(iso) {
 
 export default function MyPage({ profile }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -31,6 +33,7 @@ export default function MyPage({ profile }) {
       console.warn("Push subscription cleanup failed", error);
     }
     await signOut();
+    queryClient.clear();
     navigate("/", { replace: true });
   }
 
@@ -43,6 +46,7 @@ export default function MyPage({ profile }) {
     }
     await withdrawCurrentUser();
     await signOut();
+    queryClient.clear();
     navigate("/", { replace: true });
   }
 
