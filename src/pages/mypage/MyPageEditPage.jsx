@@ -115,7 +115,7 @@ export default function MyPageEditPage({ profile }) {
         onSubmit={handleSubmit}
       >
         <div className="col-span-full grid gap-3">
-          <p className="text-xs font-semibold text-text-secondary">증명사진</p>
+          <p className="text-xs font-semibold text-text-secondary">증명사진(자격증용)</p>
           <input
             className="block w-full text-sm text-text-primary file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-action-default file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-action-hover"
             type="file"
