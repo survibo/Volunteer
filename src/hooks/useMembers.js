@@ -11,7 +11,7 @@ export function useMembers() {
   return useQuery({
     queryKey: ["members"],
     queryFn: listMembers,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
   });
 }
 
@@ -19,7 +19,7 @@ export function useMember(id) {
   return useQuery({
     queryKey: ["member", id],
     queryFn: () => getMember(id),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
   });
 }
 

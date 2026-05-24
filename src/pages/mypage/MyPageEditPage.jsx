@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import DaumPostcodeEmbed from 'react-daum-postcode'
-import { updateOwnProfile } from '../../lib/auth'
 import { getAvatarUrl, removeAvatar, uploadAvatar } from '../../lib/storageApi'
+import { useUpdateOwnProfile } from '../../hooks/useCurrentProfile'
 import AvatarCropper from '../../components/AvatarCropper'
 
 export default function MyPageEditPage({ profile }) {
   const navigate = useNavigate()
+  const updateProfileMutation = useUpdateOwnProfile()
   const [form, setForm] = useState({
     name: profile.name ?? '',
     phone: profile.phone ?? '',
@@ -77,7 +78,7 @@ export default function MyPageEditPage({ profile }) {
     }
 
     try {
-      await updateOwnProfile({
+      await updateProfileMutation.mutateAsync({
         name,
         phone,
         email,

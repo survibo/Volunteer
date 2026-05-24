@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import AppFrame from './components/AppFrame'
 import AddToHomeScreen from './components/AddToHomeScreen'
 import ReloadPrompt from './components/ReloadPrompt'
 import TopLoadingBar from './components/TopLoadingBar'
-import { getCurrentProfile, getHomePath } from './lib/auth'
+import { getHomePath } from './lib/auth'
+import { useCurrentProfile } from './hooks/useCurrentProfile'
 import ActivityDetailPage from './pages/activity/ActivityDetailPage'
 import AdminPage from './pages/admin/AdminPage'
 import AdminActivityEditPage from './pages/admin/AdminActivityEditPage'
@@ -26,94 +26,43 @@ import RegisterPage from './pages/auth/RegisterPage'
 import VolunteerPage from './pages/activity/VolunteerPage'
 
 function PublicOnly({ children }) {
-  const [state, setState] = useState({ loading: true, session: null, profile: null, error: '' })
+  const { data: profile, isLoading, error } = useCurrentProfile()
 
-  useEffect(() => {
-    let mounted = true
-
-    async function load() {
-      try {
-        const result = await getCurrentProfile()
-        if (mounted) {
-          setState({ loading: false, session: result.session, profile: result.profile, error: '' })
-        }
-      } catch (error) {
-        if (mounted) {
-          setState({ loading: false, session: null, profile: null, error: error.message })
-        }
-      }
-    }
-
-    load()
-
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  if (state.loading) {
+  if (isLoading) {
     return <LoadingScreen />
   }
 
-  if (state.error) {
-    return <ErrorScreen message={state.error} />
+  if (error) {
+    return <ErrorScreen message={error.message} />
   }
 
-  if (state.session) {
-    return <Navigate to={getHomePath(state.profile)} replace />
+  if (profile) {
+    return <Navigate to={getHomePath(profile)} replace />
   }
 
   return children
 }
 
 function ProtectedRoute({ adminOnly = false, children }) {
-  const location = useLocation()
-  const [state, setState] = useState({ loading: true, session: null, profile: null, error: '' })
+  const { data: profile, isLoading, error } = useCurrentProfile()
 
-  useEffect(() => {
-    let mounted = true
-
-    async function load() {
-      try {
-        const result = await getCurrentProfile()
-        if (mounted) {
-          setState({ loading: false, session: result.session, profile: result.profile, error: '' })
-        }
-      } catch (error) {
-        if (mounted) {
-          setState({ loading: false, session: null, profile: null, error: error.message })
-        }
-      }
-    }
-
-    load()
-
-    return () => {
-      mounted = false
-    }
-  }, [location.pathname])
-
-  if (state.loading) {
+  if (isLoading) {
     return <LoadingScreen />
   }
 
-  if (state.error) {
-    return <ErrorScreen message={state.error} />
+  if (error) {
+    return <ErrorScreen message={error.message} />
   }
 
-  if (!state.session) {
+  if (!profile) {
     return <Navigate to="/" replace />
   }
 
-  if (!state.profile) {
-    return <Navigate to="/auth/register" replace />
-  }
-
-  if (adminOnly && state.profile.role !== 'admin') {
+  if (adminOnly && profile.role !== 'admin') {
     return <Navigate to="/volunteer" replace />
   }
 
-  return <AppFrame profile={state.profile}>{children(state.profile)}</AppFrame>
+  return <AppFrame profile={profile}>{children(profile)}</AppFrame>
 }
 
 function LoadingScreen() {
