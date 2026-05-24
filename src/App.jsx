@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import AppFrame from './components/AppFrame'
+import PublicDetailFrame from './components/PublicDetailFrame'
 import AddToHomeScreen from './components/AddToHomeScreen'
 import ReloadPrompt from './components/ReloadPrompt'
 import TopLoadingBar from './components/TopLoadingBar'
@@ -67,6 +68,24 @@ function ProtectedRoute({ adminOnly = false, children }) {
   return <AppFrame profile={profile}>{children(profile)}</AppFrame>
 }
 
+function OptionalAuthRoute({ children }) {
+  const { data: profile, isLoading, error } = useCurrentProfile()
+
+  if (isLoading) {
+    return <LoadingScreen />
+  }
+
+  if (error) {
+    return <ErrorScreen message={error.message} />
+  }
+
+  if (profile) {
+    return <AppFrame profile={profile}>{children(profile)}</AppFrame>
+  }
+
+  return <PublicDetailFrame>{children(null)}</PublicDetailFrame>
+}
+
 function LoadingScreen() {
   return <TopLoadingBar />
 }
@@ -108,7 +127,7 @@ export default function App() {
         />
         <Route
           path="/volunteer/:id"
-          element={<ProtectedRoute>{(profile) => <ActivityDetailPage table="volunteer_activities" profile={profile} />}</ProtectedRoute>}
+          element={<OptionalAuthRoute>{(profile) => <ActivityDetailPage table="volunteer_activities" profile={profile} />}</OptionalAuthRoute>}
         />
         <Route
           path="/education"
@@ -116,7 +135,7 @@ export default function App() {
         />
         <Route
           path="/education/:id"
-          element={<ProtectedRoute>{(profile) => <ActivityDetailPage table="educations" profile={profile} />}</ProtectedRoute>}
+          element={<OptionalAuthRoute>{(profile) => <ActivityDetailPage table="educations" profile={profile} />}</OptionalAuthRoute>}
         />
         <Route
           path="/mylist"

@@ -530,9 +530,9 @@ grant usage on type public.notification_type to authenticated;
 
 grant select, insert on table public.users                        to authenticated;
 grant select on table public.withdrawn_users                      to authenticated;
-grant select, insert, update, delete on table public.volunteer_activities   to authenticated;
+grant select, insert, update, delete on table public.volunteer_activities   to anon, authenticated;
 grant select, insert, update on table public.volunteer_applications         to authenticated;
-grant select, insert, update, delete on table public.educations             to authenticated;
+grant select, insert, update, delete on table public.educations             to anon, authenticated;
 grant select, insert, update on table public.education_applications         to authenticated;
 grant select, update on table public.notifications                to authenticated;
 grant select, insert, update, delete on table public.device_tokens          to authenticated;
@@ -1638,6 +1638,12 @@ create policy "Active users can read volunteer activities"
   to authenticated
   using (private.is_active_user());
 
+drop policy if exists "Anyone can read volunteer_activities" on public.volunteer_activities;
+create policy "Anyone can read volunteer_activities"
+  on public.volunteer_activities for select
+  to public
+  using (true);
+
 drop policy if exists "Admins can read volunteer activities" on public.volunteer_activities;
 create policy "Admins can read volunteer activities"
   on public.volunteer_activities for select
@@ -1672,6 +1678,12 @@ create policy "Active users can read educations"
   on public.educations for select
   to authenticated
   using (private.is_active_user());
+
+drop policy if exists "Anyone can read educations" on public.educations;
+create policy "Anyone can read educations"
+  on public.educations for select
+  to public
+  using (true);
 
 drop policy if exists "Admins can read educations" on public.educations;
 create policy "Admins can read educations"

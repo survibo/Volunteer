@@ -11,7 +11,9 @@ export default function AuthCallbackPage() {
 
     async function routeAfterOAuth() {
       try {
-        const code = new URLSearchParams(window.location.search).get('code')
+        const params = new URLSearchParams(window.location.search)
+        const code = params.get('code')
+        const redirect = params.get('redirect')
 
         await exchangeOAuthCode(code)
 
@@ -26,7 +28,11 @@ export default function AuthCallbackPage() {
           return
         }
 
-        navigate(getHomePath(profile), { replace: true })
+        if (profile && redirect) {
+          navigate(redirect, { replace: true })
+        } else {
+          navigate(getHomePath(profile), { replace: true })
+        }
       } catch (error) {
         if (mounted) {
           setMessage(error.message)

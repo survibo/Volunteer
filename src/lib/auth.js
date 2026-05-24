@@ -32,12 +32,14 @@ export async function signOut() {
   }
 }
 
-export async function signInWithOAuth(provider) {
+export async function signInWithOAuth(provider, redirectPath = '') {
+  const redirectTo = redirectPath
+    ? `${getOAuthRedirectUrl()}?redirect=${encodeURIComponent(redirectPath)}`
+    : getOAuthRedirectUrl()
+
   const { error } = await supabase.auth.signInWithOAuth({
     provider,
-    options: {
-      redirectTo: getOAuthRedirectUrl(),
-    },
+    options: { redirectTo },
   })
 
   if (error) {

@@ -53,6 +53,7 @@ export function useMyApplication(kind, activityId, userId) {
     queryKey: ["application", kind, activityId, userId],
     queryFn: () => getMyApplication(kind, activityId, userId),
     staleTime: 30 * 1000,
+    enabled: !!userId,
   });
 }
 

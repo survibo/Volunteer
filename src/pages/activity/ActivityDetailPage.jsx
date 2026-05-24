@@ -40,7 +40,7 @@ export default function ActivityDetailPage({ table, profile }) {
   const {
     data: application,
     isLoading: appLoading,
-  } = useMyApplication(kind, id, profile.id);
+  } = useMyApplication(kind, id, profile?.id);
   const applyMutation = useApplyActivity(kind);
   const cancelMutation = useCancelApplication(kind);
 
@@ -83,7 +83,7 @@ export default function ActivityDetailPage({ table, profile }) {
     );
   }
 
-  if (activityLoading || appLoading) {
+  if (activityLoading || (profile && appLoading)) {
     return <LoadingState />;
   }
 
@@ -251,14 +251,23 @@ export default function ActivityDetailPage({ table, profile }) {
         </div>
       ) : null}
       {canApply && (!application || myCancelledApp) ? (
-        <button
-          className="min-h-[44px] w-full cursor-pointer rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65 md:w-auto"
-          disabled={applyMutation.isPending}
-          type="button"
-          onClick={handleApply}
-        >
-          {applyMutation.isPending ? "신청 중" : "신청하기"}
-        </button>
+        profile ? (
+          <button
+            className="min-h-[44px] w-full cursor-pointer rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65 md:w-auto"
+            disabled={applyMutation.isPending}
+            type="button"
+            onClick={handleApply}
+          >
+            {applyMutation.isPending ? "신청 중" : "신청하기"}
+          </button>
+        ) : (
+          <Link
+            className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover md:w-auto"
+            to={`/?redirect=${encodeURIComponent(window.location.pathname)}`}
+          >
+            로그인하고 신청하기
+          </Link>
+        )
       ) : null}
       {showCancelModal && (
         <div

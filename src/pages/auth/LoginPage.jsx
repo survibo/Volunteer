@@ -1,16 +1,19 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { signInWithOAuth } from "../../lib/auth";
 
 export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [loadingProvider, setLoadingProvider] = useState("");
+  const [searchParams] = useSearchParams();
 
   async function signIn(provider) {
     setErrorMessage("");
     setLoadingProvider(provider);
 
     try {
-      await signInWithOAuth(provider);
+      const redirect = searchParams.get("redirect") || "";
+      await signInWithOAuth(provider, redirect);
     } catch (error) {
       setErrorMessage(error.message);
       setLoadingProvider("");
