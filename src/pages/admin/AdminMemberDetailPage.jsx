@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router'
 import TopLoadingBar from '../../components/TopLoadingBar'
 import { approveMember, cancelMemberApproval, getMember, grantAdmin } from '../../lib/memberApi'
 import { downloadMemberCert } from '../../lib/pdfCert'
+import UserAvatar from '../../components/UserAvatar'
 
 function roleLabel(role) {
   if (role === 'admin') return '관리자'
@@ -141,13 +142,16 @@ export default function AdminMemberDetailPage() {
         >
           회원 목록
         </Link>
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
-            {member.name}
-          </h1>
-          <span className="rounded-lg bg-surface-subtle px-2 py-1 text-xs font-semibold text-text-secondary">
-            {roleLabel(member.role)}
-          </span>
+        <div className="flex items-center gap-4">
+          <UserAvatar avatarPath={member.avatar_path} />
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
+              {member.name}
+            </h1>
+            <span className="rounded-lg bg-surface-subtle px-2 py-1 text-xs font-semibold text-text-secondary">
+              {roleLabel(member.role)}
+            </span>
+          </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2.5">
           {member.role === 'pending' && (

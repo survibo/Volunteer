@@ -16,7 +16,7 @@
 --   - 정원 초과 신청은 허용한다. 정원은 관리자 판단용 값이다.
 --
 -- Storage:
---   - 이미지 bucket id는 volunteer와 education 두 개다.
+--   - 이미지 bucket id는 volunteer, education, avatars 세 개다.
 --   - image_path에는 각 bucket 내부 object path만 저장한다.
 -- =============================================================================
 
@@ -25,7 +25,8 @@ create extension if not exists pgcrypto;
 insert into storage.buckets (id, name, public)
 values
   ('volunteer', 'volunteer', true),
-  ('education', 'education', true)
+  ('education', 'education', true),
+  ('avatars', 'avatars', true)
 on conflict (id) do update
 set public = excluded.public;
 
@@ -109,7 +110,8 @@ create unique index if not exists users_email_unique_idx on public.users(email);
 
 alter table public.users
   add column if not exists volunteer_experience text,
-  add column if not exists education_experience text;
+  add column if not exists education_experience text,
+  add column if not exists avatar_path text;
 
 
 
@@ -619,6 +621,7 @@ $$;
 drop function if exists public.update_own_profile(text, text, text, text, text, text, text);
 drop function if exists public.update_own_profile(text, text, text, text, text, text, text, text);
 drop function if exists public.update_own_profile(text, text, text, text, text, text, text, text, text);
+drop function if exists public.update_own_profile(text, text, text, text, text, text, text, text, text, text);
 create function public.update_own_profile(
   new_name text,
   new_phone text,
@@ -628,7 +631,8 @@ create function public.update_own_profile(
   new_address_detail text default '',
   new_license_number text default null,
   new_volunteer_experience text default null,
-  new_education_experience text default null
+  new_education_experience text default null,
+  new_avatar_path text default null
 )
 returns void
 language plpgsql
@@ -649,7 +653,8 @@ begin
       workplace_or_school = new_workplace_or_school,
       license_number = new_license_number,
       volunteer_experience = new_volunteer_experience,
-      education_experience = new_education_experience
+      education_experience = new_education_experience,
+      avatar_path = new_avatar_path
   where id = (select auth.uid())
     and role in ('pending', 'member', 'admin');
 
@@ -872,7 +877,7 @@ $$;
 revoke all on function public.cancel_registration() from public;
 revoke all on function public.approve_member(uuid, text) from public;
 revoke all on function public.grant_admin(uuid, text) from public;
-revoke all on function public.update_own_profile(text, text, text, text, text, text, text, text, text) from public;
+revoke all on function public.update_own_profile(text, text, text, text, text, text, text, text, text, text) from public;
 revoke all on function public.cancel_own_volunteer_application(uuid) from public;
 revoke all on function public.withdraw_current_user() from public;
 revoke all on function public.cancel_own_education_application(uuid) from public;
@@ -882,7 +887,7 @@ revoke all on function public.decide_education_application(uuid, public.applicat
 grant execute on function public.cancel_registration() to authenticated;
 grant execute on function public.approve_member(uuid, text) to authenticated;
 grant execute on function public.grant_admin(uuid, text) to authenticated;
-grant execute on function public.update_own_profile(text, text, text, text, text, text, text, text, text) to authenticated;
+grant execute on function public.update_own_profile(text, text, text, text, text, text, text, text, text, text) to authenticated;
 grant execute on function public.cancel_own_volunteer_application(uuid) to authenticated;
 grant execute on function public.withdraw_current_user() to authenticated;
 grant execute on function public.cancel_own_education_application(uuid) to authenticated;
@@ -1194,4 +1199,46 @@ create policy "Admins can delete education bucket objects"
   using (
     bucket_id = 'education'
     and private.is_admin()
+  );
+
+-- =============================================================================
+-- avatars bucket
+-- =============================================================================
+
+drop policy if exists "Anyone can read avatars bucket objects" on storage.objects;
+create policy "Anyone can read avatars bucket objects"
+  on storage.objects for select
+  using (
+    bucket_id = 'avatars'
+  );
+
+drop policy if exists "Authenticated users can upload avatars bucket objects" on storage.objects;
+create policy "Authenticated users can upload avatars bucket objects"
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'avatars'
+    and private.is_active_user()
+  );
+
+drop policy if exists "Authenticated users can update avatars bucket objects" on storage.objects;
+create policy "Authenticated users can update avatars bucket objects"
+  on storage.objects for update
+  to authenticated
+  using (
+    bucket_id = 'avatars'
+    and private.is_active_user()
+  )
+  with check (
+    bucket_id = 'avatars'
+    and private.is_active_user()
+  );
+
+drop policy if exists "Authenticated users can delete avatars bucket objects" on storage.objects;
+create policy "Authenticated users can delete avatars bucket objects"
+  on storage.objects for delete
+  to authenticated
+  using (
+    bucket_id = 'avatars'
+    and private.is_active_user()
   );

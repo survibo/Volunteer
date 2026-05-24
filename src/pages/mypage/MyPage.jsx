@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router";
 import { useState } from "react";
 import { signOut, withdrawCurrentUser } from "../../lib/auth";
 import { downloadMemberCert } from "../../lib/pdfCert";
+import UserAvatar from "../../components/UserAvatar";
 
 function formatDate(iso) {
   if (!iso) return "-";
@@ -37,13 +38,16 @@ export default function MyPage({ profile }) {
   return (
     <section className="grid gap-5 sm:gap-6">
       <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">
-            내 정보
-          </p>
-          <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
-            {profile.name}
-          </h1>
+        <div className="flex items-center gap-4">
+          <UserAvatar avatarPath={profile.avatar_path} />
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">
+              내 정보
+            </p>
+            <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
+              {profile.name}
+            </h1>
+          </div>
         </div>
         <div className="flex gap-2.5">
           {profile.role !== "pending" && (

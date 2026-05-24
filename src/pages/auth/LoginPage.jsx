@@ -38,14 +38,6 @@ export default function LoginPage() {
               ? "Google 연결 중"
               : "Google로 로그인"}
           </button>
-          <button
-            className="min-h-[44px] w-full cursor-pointer rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle disabled:cursor-progress disabled:opacity-65 md:w-auto"
-            disabled={true}
-            type="button"
-            onClick={() => signIn("kakao")}
-          >
-            {loadingProvider === "kakao" ? "Kakao 연결 중" : "Kakao로 로그인"}
-          </button>
         </div>
         {errorMessage && (
           <p className="mt-3.5 text-sm leading-normal text-status-error-text">

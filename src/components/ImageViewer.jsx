@@ -4,23 +4,53 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 export default function ImageViewer({ images, initialIndex, onClose }) {
   const [index, setIndex] = useState(initialIndex);
   const touchStartX = useRef(null);
+  const closedRef = useRef(false);
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  })
 
   function goNext() {
-    if (index < images.length - 1) setIndex(index + 1);
+    setIndex((i) => Math.min(i + 1, images.length - 1))
   }
   function goPrev() {
-    if (index > 0) setIndex(index - 1);
+    setIndex((i) => Math.max(i - 1, 0))
+  }
+
+  function close() {
+    if (closedRef.current) return
+    closedRef.current = true
+    onCloseRef.current()
+  }
+
+  function handleClose() {
+    if (closedRef.current) return
+    window.history.back()
+    setTimeout(close, 100)
   }
 
   useEffect(() => {
-    function handleKeyDown(e) {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowRight") goNext();
-      if (e.key === "ArrowLeft") goPrev();
+    window.history.pushState({ viewer: true }, "")
+
+    function handlePopState() {
+      close()
     }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  });
+
+    function handleKeyDown(e) {
+      if (e.key === "Escape") handleClose()
+      if (e.key === "ArrowRight") goNext()
+      if (e.key === "ArrowLeft") goPrev()
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState)
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handleTouchStart(e) {
     touchStartX.current = e.touches[0].clientX;
@@ -39,7 +69,7 @@ export default function ImageViewer({ images, initialIndex, onClose }) {
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         className="relative flex h-full w-full items-center justify-center"
@@ -82,9 +112,32 @@ export default function ImageViewer({ images, initialIndex, onClose }) {
         )}
 
         <button
+          className="absolute bottom-4 right-4 cursor-pointer rounded-full bg-black/50 px-4 py-2 text-sm font-medium text-white hover:bg-black/70"
+          type="button"
+          onClick={async (e) => {
+            e.stopPropagation()
+            try {
+              const res = await fetch(images[index])
+              const blob = await res.blob()
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = 'photo.webp'
+              document.body.appendChild(a)
+              a.click()
+              document.body.removeChild(a)
+              URL.revokeObjectURL(url)
+            } catch {
+              // silent
+            }
+          }}
+        >
+          다운로드
+        </button>
+        <button
           className="absolute right-2 top-2 cursor-pointer rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           aria-label="닫기"
         >
           <X size={24} />

@@ -48,7 +48,7 @@ function ActivityCard({ activity, detailPath, adminEditBasePath, isAdmin, now })
 
   return (
     <div
-      className="relative cursor-pointer rounded-xl border border-border-default bg-surface-base p-5 hover:bg-surface-subtle"
+      className="relative cursor-pointer rounded-xl border border-border-default bg-surface-base p-5 pr-8 hover:bg-surface-subtle"
       onClick={() => navigate(`${detailPath}/${activity.id}`)}
     >
       <h3 className="text-lg font-bold text-text-primary">{activity.title}</h3>

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import DaumPostcodeEmbed from 'react-daum-postcode'
 import { cancelRegistration, createPendingProfile, getCurrentProfile, getHomePath } from '../../lib/auth'
+import { uploadAvatar } from '../../lib/storageApi'
+import AvatarCropper from '../../components/AvatarCropper'
 
 const emptyForm = {
   name: '',
@@ -25,6 +27,9 @@ export default function RegisterPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [showPostcode, setShowPostcode] = useState(false)
+  const [avatarFile, setAvatarFile] = useState(null)
+  const [avatarPreview, setAvatarPreview] = useState(null)
+  const [cropSrc, setCropSrc] = useState(null)
 
   function handlePostcodeComplete(data) {
     let fullAddress = data.address
@@ -107,6 +112,17 @@ export default function RegisterPage() {
       return
     }
 
+    let avatar_path = null
+    if (avatarFile) {
+      try {
+        avatar_path = await uploadAvatar(avatarFile)
+      } catch (error) {
+        setSaving(false)
+        setErrorMessage('사진 업로드에 실패했습니다: ' + error.message)
+        return
+      }
+    }
+
     const payload = {
       id: session.user.id,
       role: 'pending',
@@ -119,6 +135,7 @@ export default function RegisterPage() {
       license_number,
       volunteer_experience,
       education_experience,
+      avatar_path,
     }
 
     try {
@@ -164,6 +181,56 @@ export default function RegisterPage() {
           회원 가입
         </h1>
         <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+          <div className="col-span-full grid gap-3">
+            <p className="text-xs font-semibold text-text-secondary">증명사진</p>
+            <input
+              className="block w-full text-sm text-text-primary file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-action-default file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-action-hover"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  setCropSrc(URL.createObjectURL(file))
+                }
+                e.target.value = ''
+              }}
+            />
+            {avatarPreview && (
+              <div className="relative w-32">
+                <img className="h-32 w-32 rounded-full object-cover" src={avatarPreview} alt="" />
+                <button
+                  className="absolute -right-2 -top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-status-error-text text-white hover:opacity-80"
+                  type="button"
+                  onClick={() => {
+                    setAvatarFile(null)
+                    if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+                    setAvatarPreview(null)
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+          {cropSrc && (
+            <AvatarCropper
+              imageSrc={cropSrc}
+              onCropComplete={(blob, error) => {
+                URL.revokeObjectURL(cropSrc)
+                setCropSrc(null)
+                if (error) {
+                  setErrorMessage(error)
+                  return
+                }
+                setAvatarFile(blob)
+                setAvatarPreview(URL.createObjectURL(blob))
+              }}
+              onCancel={() => {
+                URL.revokeObjectURL(cropSrc)
+                setCropSrc(null)
+              }}
+            />
+          )}
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
             <span>이름 <span className="text-status-error-text">*</span></span>
             <input

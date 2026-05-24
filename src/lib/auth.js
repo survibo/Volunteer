@@ -115,6 +115,7 @@ export async function updateOwnProfile(payload) {
     new_license_number: payload.license_number,
     new_volunteer_experience: payload.volunteer_experience,
     new_education_experience: payload.education_experience,
+    new_avatar_path: payload.avatar_path ?? null,
   })
 
   if (error) {

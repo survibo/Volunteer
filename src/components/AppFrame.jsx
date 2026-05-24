@@ -16,7 +16,7 @@ export default function AppFrame({ profile, children }) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <header className="shrink-0 sticky top-0 z-10 grid min-h-16 grid-cols-1 items-center gap-4 border-b border-border-default bg-white px-4 py-3 md:grid-cols-[auto_1fr_auto] md:px-6">
+      <header className="shrink-0 sticky top-0 z-10 grid min-h-16 grid-cols-1 items-center gap-2 border-b border-border-default bg-white px-4 py-3 md:grid-cols-[auto_1fr_auto] md:px-6">
         <div className="flex items-center justify-between gap-2.5 text-sm font-bold text-text-secondary md:justify-start">
           <span className="text-black text-lg">{profile?.name}</span>
         </div>

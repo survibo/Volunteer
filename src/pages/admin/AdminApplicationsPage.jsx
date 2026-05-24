@@ -38,7 +38,6 @@ function applicantMemberLabel(user) {
   return "준회원";
 }
 
-
 function statusBadgeClass(status) {
   if (status === "accepted") {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
@@ -226,7 +225,9 @@ export default function AdminApplicationsPage({ table }) {
     const XLSX = await import("xlsx");
     const selectedStatuses = [...exportStatuses];
     const completedTitle =
-      activity && new Date(activity.ends_at) <= new Date() ? activity.title : "";
+      activity && new Date(activity.ends_at) <= new Date()
+        ? activity.title
+        : "";
     const rows = applications
       .filter((app) => selectedStatuses.includes(app?.status))
       .map((app) => [
@@ -433,7 +434,8 @@ export default function AdminApplicationsPage({ table }) {
                           </Link>
                           <span
                             className="rounded-lg px-2 py-1 text-xs font-semibold bg-slate-100 text-slate-600 ring-1 ring-slate-200}
-                          ">
+                          "
+                          >
                             {applicantMemberLabel(app.users)}
                           </span>
                         </div>

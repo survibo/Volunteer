@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { GripVertical, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { createActivity, getActivityKind, updateActivity } from '../lib/activityApi'
 import { getImageUrl, parseImagePaths, uploadActivityImages } from '../lib/storageApi'
 import ImageWithFallback from './ImageWithFallback'
@@ -71,8 +71,6 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
     setForm((prev) => ({ ...prev, [name]: value }))
   }
 
-  const dragIndex = useRef(null)
-
   function handleImageSelect(e) {
     const files = Array.from(e.target.files ?? [])
     files.sort((a, b) => a.lastModified - b.lastModified)
@@ -91,45 +89,15 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
     })
   }
 
-  function moveImage(from, to) {
-    if (from === to) return
+  function moveImage(index, direction) {
     setImages((prev) => {
+      const to = index + direction
+      if (to < 0 || to >= prev.length) return prev
       const next = [...prev]
-      const [moved] = next.splice(from, 1)
+      const [moved] = next.splice(index, 1)
       next.splice(to, 0, moved)
       return next
     })
-  }
-
-  function handleDragStart(e, index) {
-    dragIndex.current = index
-    e.dataTransfer.effectAllowed = 'move'
-  }
-
-  function handleDragOver(e) {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-  }
-
-  function handleDrop(e, toIndex) {
-    e.preventDefault()
-    const from = dragIndex.current
-    dragIndex.current = null
-    if (from != null && from !== toIndex) {
-      moveImage(from, toIndex)
-    }
-  }
-
-  function handleTouchStart(index) {
-    dragIndex.current = index
-  }
-
-  function handleTouchEnd(toIndex) {
-    const from = dragIndex.current
-    dragIndex.current = null
-    if (from != null && from !== toIndex) {
-      moveImage(from, toIndex)
-    }
   }
 
   async function handleSubmit(e) {
@@ -265,19 +233,17 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
           {images.length > 0 ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
               {images.map((item, i) => (
-                <div
-                  key={item.kind === 'existing' ? `e-${item.path}` : `n-${i}`}
-                  className="group relative cursor-grab active:cursor-grabbing"
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, i)}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, i)}
-                  onTouchStart={() => handleTouchStart(i)}
-                  onTouchEnd={() => handleTouchEnd(i)}
-                >
-                  <div className="absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded bg-black/40 text-white">
-                    <GripVertical size={14} />
+                <div key={item.kind === 'existing' ? `e-${item.path}` : `n-${i}`} className="group relative">
+                  <div className="absolute left-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded bg-black/40 text-xs font-bold text-white">
+                    {i + 1}
                   </div>
+                  <button
+                    className="absolute right-1 top-1 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-status-error-text text-white hover:opacity-80"
+                    type="button"
+                    onClick={() => removeImage(i)}
+                  >
+                    <X size={10} />
+                  </button>
                   {item.kind === 'existing' ? (
                     <ImageWithFallback
                       className="h-32 w-full rounded-lg object-cover"
@@ -291,13 +257,25 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
                       alt=""
                     />
                   )}
-                  <button
-                    className="absolute -right-2 -top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-status-error-text text-white hover:opacity-80"
-                    type="button"
-                    onClick={() => removeImage(i)}
-                  >
-                    <X size={14} />
-                  </button>
+                  <div className="mt-1 flex items-center justify-center gap-3">
+                    <button
+                      className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md bg-surface-subtle text-text-secondary hover:bg-border-default disabled:opacity-30"
+                      type="button"
+                      disabled={i === 0}
+                      onClick={() => moveImage(i, -1)}
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    <span className="text-xs text-text-tertiary">{i + 1} / {images.length}</span>
+                    <button
+                      className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md bg-surface-subtle text-text-secondary hover:bg-border-default disabled:opacity-30"
+                      type="button"
+                      disabled={i === images.length - 1}
+                      onClick={() => moveImage(i, 1)}
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

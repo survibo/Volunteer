@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import DaumPostcodeEmbed from 'react-daum-postcode'
 import { updateOwnProfile } from '../../lib/auth'
+import { getAvatarUrl, removeAvatar, uploadAvatar } from '../../lib/storageApi'
+import AvatarCropper from '../../components/AvatarCropper'
 
 export default function MyPageEditPage({ profile }) {
   const navigate = useNavigate()
@@ -16,10 +18,14 @@ export default function MyPageEditPage({ profile }) {
     education_experience: profile.education_experience ?? '',
   })
   const [baseAddress, setBaseAddress] = useState('')
-  const [detailAddress, setDetailAddress] = useState('')
+  const [detailAddress, setDetailAddress] = useState(profile.address_detail ?? '')
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [showPostcode, setShowPostcode] = useState(false)
+  const [avatarFile, setAvatarFile] = useState(null)
+  const [avatarPreview, setAvatarPreview] = useState(null)
+  const [removeExistingAvatar, setRemoveExistingAvatar] = useState(false)
+  const [cropSrc, setCropSrc] = useState(null)
 
   function updateField(event) {
     const { name, value } = event.target
@@ -57,6 +63,19 @@ export default function MyPageEditPage({ profile }) {
       return
     }
 
+    let avatar_path = profile.avatar_path
+    if (removeExistingAvatar) {
+      if (profile.avatar_path) {
+        await removeAvatar(profile.avatar_path)
+      }
+      avatar_path = null
+    } else if (avatarFile) {
+      if (profile.avatar_path) {
+        await removeAvatar(profile.avatar_path)
+      }
+      avatar_path = await uploadAvatar(avatarFile)
+    }
+
     try {
       await updateOwnProfile({
         name,
@@ -68,6 +87,7 @@ export default function MyPageEditPage({ profile }) {
         license_number: license_number || null,
         volunteer_experience,
         education_experience,
+        avatar_path,
       })
       navigate('/mypage', { replace: true })
     } catch (error) {
@@ -90,6 +110,67 @@ export default function MyPageEditPage({ profile }) {
         className="grid gap-3.5 rounded-xl border border-border-default bg-surface-base p-5 sm:gap-4 sm:p-6"
         onSubmit={handleSubmit}
       >
+        <div className="col-span-full grid gap-3">
+          <p className="text-xs font-semibold text-text-secondary">증명사진</p>
+          <input
+            className="block w-full text-sm text-text-primary file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-action-default file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-action-hover"
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) {
+                setCropSrc(URL.createObjectURL(file))
+              }
+              e.target.value = ''
+            }}
+          />
+          {(avatarPreview || (profile.avatar_path && !removeExistingAvatar)) && (
+            <div className="relative w-32">
+              <img
+                className="h-32 w-32 rounded-full object-cover"
+                src={avatarPreview || getAvatarUrl(profile.avatar_path)}
+                alt=""
+              />
+              <button
+                className="absolute -right-2 -top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-status-error-text text-white hover:opacity-80"
+                type="button"
+                onClick={() => {
+                  if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+                  setAvatarFile(null)
+                  setAvatarPreview(null)
+                  if (profile.avatar_path && !removeExistingAvatar) {
+                    setRemoveExistingAvatar(true)
+                  }
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          {removeExistingAvatar && (
+            <p className="text-xs text-status-error-text">기존 사진이 제거됩니다. 새 파일을 선택하거나 저장하면 삭제됩니다.</p>
+          )}
+        </div>
+        {cropSrc && (
+          <AvatarCropper
+            imageSrc={cropSrc}
+            onCropComplete={(blob, error) => {
+              URL.revokeObjectURL(cropSrc)
+              setCropSrc(null)
+              if (error) {
+                setErrorMessage(error)
+                return
+              }
+              setAvatarFile(blob)
+              setAvatarPreview(URL.createObjectURL(blob))
+              setRemoveExistingAvatar(false)
+            }}
+            onCancel={() => {
+              URL.revokeObjectURL(cropSrc)
+              setCropSrc(null)
+            }}
+          />
+        )}
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
           <span>이름 <span className="text-status-error-text">*</span></span>
           <input
