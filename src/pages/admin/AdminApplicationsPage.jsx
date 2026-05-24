@@ -2,10 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { CheckCheck, Download, Search, X } from "lucide-react";
 import TopLoadingBar from "../../components/TopLoadingBar";
-import {
-  getActivityConfig,
-  getActivityKind,
-} from "../../lib/activityApi";
+import { getActivityConfig, getActivityKind } from "../../lib/activityApi";
 import {
   useActivityMaybe,
   useActivityApplications,
@@ -103,14 +100,12 @@ export default function AdminApplicationsPage({ table }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
 
-  const {
-    data: activity,
-    isLoading: activityLoading,
-  } = useActivityMaybe(kind, id);
-  const {
-    data: applications = [],
-    isLoading: appsLoading,
-  } = useActivityApplications(kind, id);
+  const { data: activity, isLoading: activityLoading } = useActivityMaybe(
+    kind,
+    id
+  );
+  const { data: applications = [], isLoading: appsLoading } =
+    useActivityApplications(kind, id);
   const decideMutation = useDecideApplications(kind);
 
   const loading = activityLoading || appsLoading;
@@ -156,6 +151,15 @@ export default function AdminApplicationsPage({ table }) {
       }
       return next;
     });
+  }
+
+  function handleApplicationCardKeyDown(event, appId) {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    toggleSelect(appId);
   }
 
   async function handleDecide(applicationIds, nextStatus) {
@@ -221,6 +225,7 @@ export default function AdminApplicationsPage({ table }) {
         app.users?.volunteer_experience ?? "",
         app.users?.education_experience ?? "",
         app?.status === "accepted" ? completedTitle : "",
+        app?.application_note ?? "",
       ]);
 
     const worksheet = XLSX.utils.aoa_to_sheet([
@@ -236,10 +241,11 @@ export default function AdminApplicationsPage({ table }) {
         "봉사활동 이력",
         "교육이수 이력",
         "완료된 활동 제목",
+        "신청 종목",
       ],
       ...rows,
     ]);
-    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }];
+    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }];
     worksheet["!cols"] = [
       { wch: 18 },
       { wch: 14 },
@@ -250,6 +256,7 @@ export default function AdminApplicationsPage({ table }) {
       { wch: 32 },
       { wch: 32 },
       { wch: 40 },
+      { wch: 30 },
     ];
 
     const workbook = XLSX.utils.book_new();
@@ -390,32 +397,31 @@ export default function AdminApplicationsPage({ table }) {
             return (
               <div
                 key={app.id}
-                className={`rounded-xl border bg-surface-base p-5 ${
+                className={`cursor-pointer rounded-xl border bg-surface-base p-5 ${
                   selectedIds.has(app.id)
                     ? "border-action-default"
                     : "border-border-default"
                 }`}
+                role="checkbox"
+                aria-checked={selectedIds.has(app.id)}
+                tabIndex={0}
+                onClick={() => toggleSelect(app.id)}
+                onKeyDown={(event) => handleApplicationCardKeyDown(event, app.id)}
               >
                 <div className="grid gap-4">
                   <div className="flex items-start justify-between gap-3">
-                    <label className="flex cursor-pointer items-center gap-3">
-                      <input
-                        className="h-4 w-4"
-                        type="checkbox"
-                        checked={selectedIds.has(app.id)}
-                        onChange={() => toggleSelect(app.id)}
-                      />
-                      <div className="grid gap-2">
+                    <div className="flex min-w-0 flex-1 items-start">
+                      <div className="grid min-w-0 flex-1 gap-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <Link
                             className="font-bold text-text-primary hover:underline"
                             to={`/admin/members/${app.users?.id}/history`}
+                            onClick={(event) => event.stopPropagation()}
                           >
                             {app.users?.name ?? "-"}
                           </Link>
                           <span
-                            className="rounded-lg px-2 py-1 text-xs font-semibold bg-slate-100 text-slate-600 ring-1 ring-slate-200}
-                          "
+                            className="rounded-lg px-2 py-1 text-xs font-semibold bg-slate-100 text-slate-600 ring-1 ring-slate-200"
                           >
                             {applicantMemberLabel(app.users)}
                           </span>
@@ -438,7 +444,7 @@ export default function AdminApplicationsPage({ table }) {
                           </div>
                         </dl>
                       </div>
-                    </label>
+                    </div>
                     <span
                       className={`shrink-0 rounded-xl border px-3 py-1.5 text-sm font-bold ${statusBadgeClass(
                         app.status
@@ -447,12 +453,25 @@ export default function AdminApplicationsPage({ table }) {
                       {statusLabel[app.status]}
                     </span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2.5 pl-7">
+                  {app.application_note && (
+                    <div className="grid gap-1">
+                      <p className="text-xs font-semibold text-text-tertiary">
+                        신청 종목
+                      </p>
+                      <p className="m-0 whitespace-pre-wrap break-all rounded-lg bg-surface-subtle px-3 py-2 text-sm text-text-primary">
+                        {app.application_note}
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <button
                       className="min-h-[36px] cursor-pointer rounded-lg bg-action-default px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
                       disabled={processing === app.id}
                       type="button"
-                      onClick={() => handleDecide([app.id], "accepted")}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleDecide([app.id], "accepted");
+                      }}
                     >
                       수락
                     </button>
@@ -460,7 +479,10 @@ export default function AdminApplicationsPage({ table }) {
                       className="min-h-[36px] cursor-pointer rounded-lg border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-600 hover:bg-red-100 disabled:cursor-progress disabled:opacity-65"
                       disabled={processing === app.id}
                       type="button"
-                      onClick={() => handleDecide([app.id], "rejected")}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleDecide([app.id], "rejected");
+                      }}
                     >
                       거절
                     </button>
@@ -468,7 +490,10 @@ export default function AdminApplicationsPage({ table }) {
                       className="min-h-[36px] cursor-pointer rounded-lg border border-border-default bg-white px-4 text-sm font-semibold text-text-secondary hover:bg-surface-subtle disabled:cursor-progress disabled:opacity-65"
                       disabled={processing === app.id}
                       type="button"
-                      onClick={() => openCancelConfirm([app.id])}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openCancelConfirm([app.id]);
+                      }}
                     >
                       신청 취소
                     </button>
@@ -554,7 +579,7 @@ export default function AdminApplicationsPage({ table }) {
             </div>
             <p className="mt-3 text-sm text-text-secondary">
               이름, 회원번호, 소속, 전화번호, 이메일, 신청 일시, exp_vol,
-              exp_edu, 완료된 활동 제목이 포함됩니다.
+              exp_edu, 완료된 활동 제목, 신청 종목이 포함됩니다.
             </p>
             <div className="mt-5 flex gap-2.5">
               <button

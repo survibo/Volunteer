@@ -150,8 +150,9 @@ export async function getMyApplication(kind, activityId, userId) {
   return data
 }
 
-export async function applyToActivity(kind, activityId, userId, existingApplication) {
+export async function applyToActivity(kind, activityId, userId, existingApplication, applicationNote) {
   const cfg = getActivityConfig(kind)
+  const note = applicationNote?.trim() || null
 
   if (existingApplication?.status === 'cancelled') {
     const { data, error } = await supabase
@@ -160,9 +161,9 @@ export async function applyToActivity(kind, activityId, userId, existingApplicat
         status: 'pending',
         cancelled_at: null,
         cancelled_by: null,
-        cancellation_reason: null,
         decided_at: null,
         decided_by: null,
+        application_note: note,
       })
       .eq('id', existingApplication.id)
       .select('*')
@@ -179,6 +180,7 @@ export async function applyToActivity(kind, activityId, userId, existingApplicat
       [cfg.foreignKey]: activityId,
       user_id: userId,
       status: 'pending',
+      application_note: note,
     })
     .select('*')
     .single()

@@ -26,10 +26,6 @@ export default function InAppBrowserWarning({ onClose }) {
     }
   }
 
-  function proceedHere() {
-    onClose?.()
-  }
-
   if (!isInAppBrowser()) return null
 
   return (
@@ -69,13 +65,6 @@ export default function InAppBrowserWarning({ onClose }) {
             onClick={copyUrl}
           >
             {copied ? '복사됨' : '링크 복사'}
-          </button>
-          <button
-            type="button"
-            className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-secondary hover:bg-surface-subtle"
-            onClick={proceedHere}
-          >
-            여기서 계속 진행
           </button>
         </div>
       </div>

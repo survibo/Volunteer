@@ -35,6 +35,7 @@ export default function ActivityDetailPage({ table, profile }) {
   const [viewerIndex, setViewerIndex] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showInAppWarning, setShowInAppWarning] = useState(false);
+  const [applicationNote, setApplicationNote] = useState("");
 
   const {
     data: activity,
@@ -68,8 +69,12 @@ export default function ActivityDetailPage({ table, profile }) {
 
   async function handleApply() {
     setErrorMessage("");
+    if (activity?.require_application_note && !applicationNote.trim()) {
+      setErrorMessage("종목을 입력해주세요.");
+      return;
+    }
     applyMutation.mutate(
-      { activityId: id, userId: profile.id, existingApp: application },
+      { activityId: id, userId: profile.id, existingApp: application, applicationNote },
       {
         onError: (error) => setErrorMessage(error.message),
       }
@@ -256,14 +261,27 @@ export default function ActivityDetailPage({ table, profile }) {
       ) : null}
       {canApply && (!application || myCancelledApp) ? (
         profile ? (
-          <button
-            className="min-h-[44px] w-full cursor-pointer rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65 md:w-auto"
-            disabled={applyMutation.isPending}
-            type="button"
-            onClick={handleApply}
-          >
-            {applyMutation.isPending ? "신청 중" : "신청하기"}
-          </button>
+          <div className="grid gap-3">
+            {activity?.require_application_note && (
+              <label className="grid gap-2 text-xs font-semibold text-text-secondary">
+                종목 선택(1, 2, 3순위)
+                <textarea
+                  className="min-h-24 w-full resize-y rounded-lg border border-border-default bg-white px-3 py-2 text-text-primary placeholder:text-text-tertiary"
+                  placeholder="1순위: OO, 2순위: OO, 3순위: OO"
+                  value={applicationNote}
+                  onChange={(e) => setApplicationNote(e.target.value)}
+                />
+              </label>
+            )}
+            <button
+              className="min-h-[44px] w-full cursor-pointer rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65 md:w-auto"
+              disabled={applyMutation.isPending}
+              type="button"
+              onClick={handleApply}
+            >
+              {applyMutation.isPending ? "신청 중" : "신청하기"}
+            </button>
+          </div>
         ) : (
           <button
             className="min-h-[44px] w-full cursor-pointer rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover md:w-auto"

@@ -3,7 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import AppFrame from './components/AppFrame'
 import PublicDetailFrame from './components/PublicDetailFrame'
 import AddToHomeScreen from './components/AddToHomeScreen'
-import ReloadPrompt from './components/ReloadPrompt'
+
 import TopLoadingBar from './components/TopLoadingBar'
 import { getHomePath } from './lib/auth'
 import { useCurrentProfile } from './hooks/useCurrentProfile'
@@ -107,7 +107,6 @@ function ErrorScreen({ message }) {
 export default function App() {
   return (
     <BrowserRouter>
-      <ReloadPrompt />
       <AddToHomeScreen />
       <Suspense fallback={<TopLoadingBar />}>
         <Routes>

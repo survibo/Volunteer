@@ -76,8 +76,8 @@ export function useActivityApplications(kind, activityId) {
 export function useApplyActivity(kind) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ activityId, userId, existingApp }) =>
-      applyToActivity(kind, activityId, userId, existingApp),
+    mutationFn: ({ activityId, userId, existingApp, applicationNote }) =>
+      applyToActivity(kind, activityId, userId, existingApp, applicationNote),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["application", kind, variables.activityId, variables.userId],

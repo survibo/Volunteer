@@ -195,11 +195,12 @@ create table if not exists public.volunteer_activities (
   starts_at            date          not null,
   ends_at              date          not null,
   capacity             integer       not null,
-  chat_link            text,
-  created_by           uuid          references public.users(id) on delete set null,
-  updated_by           uuid          references public.users(id) on delete set null,
-  created_at           timestamptz   not null default now(),
-  updated_at           timestamptz   not null default now(),
+  chat_link                   text,
+  require_application_note    boolean       not null default false,
+  created_by                  uuid          references public.users(id) on delete set null,
+  updated_by                  uuid          references public.users(id) on delete set null,
+  created_at                  timestamptz   not null default now(),
+  updated_at                  timestamptz   not null default now(),
   constraint volunteer_activities_capacity_check
     check (capacity > 0),
   constraint volunteer_activities_schedule_check
@@ -242,7 +243,7 @@ create table if not exists public.volunteer_applications (
   decided_by            uuid                      references public.users(id) on delete set null,
   cancelled_at          timestamptz,
   cancelled_by          uuid                      references public.users(id) on delete set null,
-  cancellation_reason   text,
+  application_note      text,
   created_at            timestamptz               not null default now(),
   updated_at            timestamptz               not null default now(),
   constraint volunteer_applications_unique_user_activity
@@ -255,7 +256,6 @@ create table if not exists public.volunteer_applications (
         and decided_by is null
         and cancelled_at is null
         and cancelled_by is null
-        and cancellation_reason is null
       )
     ),
   constraint volunteer_applications_decision_check
@@ -302,11 +302,12 @@ create table if not exists public.educations (
   starts_at            date          not null,
   ends_at              date          not null,
   capacity             integer       not null,
-  chat_link            text,
-  created_by           uuid          references public.users(id) on delete set null,
-  updated_by           uuid          references public.users(id) on delete set null,
-  created_at           timestamptz   not null default now(),
-  updated_at           timestamptz   not null default now(),
+  chat_link                   text,
+  require_application_note    boolean       not null default false,
+  created_by                  uuid          references public.users(id) on delete set null,
+  updated_by                  uuid          references public.users(id) on delete set null,
+  created_at                  timestamptz   not null default now(),
+  updated_at                  timestamptz   not null default now(),
   constraint educations_capacity_check
     check (capacity > 0),
   constraint educations_schedule_check
@@ -349,7 +350,7 @@ create table if not exists public.education_applications (
   decided_by            uuid                      references public.users(id) on delete set null,
   cancelled_at          timestamptz,
   cancelled_by          uuid                      references public.users(id) on delete set null,
-  cancellation_reason   text,
+  application_note      text,
   created_at            timestamptz               not null default now(),
   updated_at            timestamptz               not null default now(),
   constraint education_applications_unique_user_education
@@ -362,7 +363,6 @@ create table if not exists public.education_applications (
         and decided_by is null
         and cancelled_at is null
         and cancelled_by is null
-        and cancellation_reason is null
       )
     ),
   constraint education_applications_decision_check
@@ -865,8 +865,7 @@ $$;
 
 create or replace function public.decide_volunteer_application(
   application_id uuid,
-  next_status public.application_status,
-  reason text default null
+  next_status public.application_status
 )
 returns void
 language plpgsql
@@ -914,8 +913,7 @@ begin
         decided_at = now(),
         decided_by = (select auth.uid()),
         cancelled_at = null,
-        cancelled_by = null,
-        cancellation_reason = null
+        cancelled_by = null
     where id = application_id
       and status in ('pending', 'accepted', 'rejected', 'cancelled');
   else
@@ -923,7 +921,6 @@ begin
     set status = 'cancelled',
         cancelled_at = now(),
         cancelled_by = (select auth.uid()),
-        cancellation_reason = reason,
         decided_at = null,
         decided_by = null
     where id = application_id
@@ -938,8 +935,7 @@ $$;
 
 create or replace function public.decide_education_application(
   application_id uuid,
-  next_status public.application_status,
-  reason text default null
+  next_status public.application_status
 )
 returns void
 language plpgsql
@@ -987,8 +983,7 @@ begin
         decided_at = now(),
         decided_by = (select auth.uid()),
         cancelled_at = null,
-        cancelled_by = null,
-        cancellation_reason = null
+        cancelled_by = null
     where id = application_id
       and status in ('pending', 'accepted', 'rejected', 'cancelled');
   else
@@ -996,7 +991,6 @@ begin
     set status = 'cancelled',
         cancelled_at = now(),
         cancelled_by = (select auth.uid()),
-        cancellation_reason = reason,
         decided_at = null,
         decided_by = null
     where id = application_id
@@ -1095,8 +1089,8 @@ revoke all on function public.update_own_profile(text, text, text, text, text, d
 revoke all on function public.cancel_own_volunteer_application(uuid) from public;
 revoke all on function public.withdraw_current_user() from public;
 revoke all on function public.cancel_own_education_application(uuid) from public;
-revoke all on function public.decide_volunteer_application(uuid, public.application_status, text) from public;
-revoke all on function public.decide_education_application(uuid, public.application_status, text) from public;
+revoke all on function public.decide_volunteer_application(uuid, public.application_status) from public;
+revoke all on function public.decide_education_application(uuid, public.application_status) from public;
 revoke all on function public.set_user_chip(uuid, text, text) from public;
 revoke all on function public.set_user_memo(uuid, text) from public;
 
@@ -1108,8 +1102,8 @@ grant execute on function public.update_own_profile(text, text, text, text, text
 grant execute on function public.cancel_own_volunteer_application(uuid) to authenticated;
 grant execute on function public.withdraw_current_user() to authenticated;
 grant execute on function public.cancel_own_education_application(uuid) to authenticated;
-grant execute on function public.decide_volunteer_application(uuid, public.application_status, text) to authenticated;
-grant execute on function public.decide_education_application(uuid, public.application_status, text) to authenticated;
+grant execute on function public.decide_volunteer_application(uuid, public.application_status) to authenticated;
+grant execute on function public.decide_education_application(uuid, public.application_status) to authenticated;
 grant execute on function public.set_user_chip(uuid, text, text) to authenticated;
 grant execute on function public.set_user_memo(uuid, text) to authenticated;
 
