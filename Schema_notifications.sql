@@ -81,6 +81,8 @@ create policy "notifications_insert_service"
   on public.notifications for insert
   with check (true);
 
+grant select, update on table public.notifications to authenticated;
+
 
 -- =============================================================================
 -- Helper: 단일 알림 생성
