@@ -1885,7 +1885,6 @@ create policy "Authenticated users can upload avatars bucket objects"
   with check (
     bucket_id = 'avatars'
     and auth.role() = 'authenticated'
-    and (metadata->>'size')::bigint < 5242880
   );
 
 drop policy if exists "Authenticated users can update avatars bucket objects" on storage.objects;
