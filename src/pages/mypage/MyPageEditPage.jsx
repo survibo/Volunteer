@@ -181,6 +181,7 @@ export default function MyPageEditPage({ profile }) {
             onChange={updateField}
           />
         </label>
+        
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
           <span>연락처 <span className="text-status-error-text">*</span></span>
           <input

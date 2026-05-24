@@ -181,6 +181,16 @@ export default function RegisterPage() {
           회원 가입
         </h1>
         <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+          <label className="grid gap-2 text-xs font-semibold text-text-secondary">
+            <span>이름 <span className="text-status-error-text">*</span></span>
+            <input
+              className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+              name="name"
+              required
+              value={form.name}
+              onChange={updateField}
+            />
+          </label>
           <div className="col-span-full grid gap-3">
             <p className="text-xs font-semibold text-text-secondary">증명사진</p>
             <input
@@ -231,16 +241,6 @@ export default function RegisterPage() {
               }}
             />
           )}
-          <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-            <span>이름 <span className="text-status-error-text">*</span></span>
-            <input
-              className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
-              name="name"
-              required
-              value={form.name}
-              onChange={updateField}
-            />
-          </label>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
             <span>연락처 <span className="text-status-error-text">*</span></span>
             <input
