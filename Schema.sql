@@ -1239,7 +1239,7 @@ create policy "Authenticated users can upload avatars bucket objects"
   to authenticated
   with check (
     bucket_id = 'avatars'
-    and private.is_active_user()
+    and auth.role() = 'authenticated'
   );
 
 drop policy if exists "Authenticated users can update avatars bucket objects" on storage.objects;
@@ -1248,11 +1248,11 @@ create policy "Authenticated users can update avatars bucket objects"
   to authenticated
   using (
     bucket_id = 'avatars'
-    and private.is_active_user()
+    and auth.role() = 'authenticated'
   )
   with check (
     bucket_id = 'avatars'
-    and private.is_active_user()
+    and auth.role() = 'authenticated'
   );
 
 drop policy if exists "Authenticated users can delete avatars bucket objects" on storage.objects;
@@ -1261,5 +1261,5 @@ create policy "Authenticated users can delete avatars bucket objects"
   to authenticated
   using (
     bucket_id = 'avatars'
-    and private.is_active_user()
+    and auth.role() = 'authenticated'
   );

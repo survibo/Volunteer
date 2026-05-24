@@ -127,7 +127,7 @@ export default function MyPage({ profile }) {
       </dl>
       <div className="border-t border-border-default pt-5 sm:pt-6">
         <button
-          className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-red-200 bg-red-50 px-5 font-semibold text-red-600 hover:border-red-300 hover:bg-red-100 sm:w-auto"
+          className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-transparent bg-status-error-text px-5 font-semibold text-white hover:opacity-80 sm:w-auto"
           type="button"
           onClick={() => setShowSignOutModal(true)}
         >
@@ -175,7 +175,7 @@ export default function MyPage({ profile }) {
       )}
 
       <button
-        className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-transparent bg-status-error-text px-5 font-semibold text-white hover:opacity-80 sm:w-auto"
+        className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-red-200 bg-red-50 px-5 font-semibold text-red-600 hover:border-red-300 hover:bg-red-100 sm:w-auto"
         type="button"
         onClick={() => setShowWithdrawModal(true)}
       >
