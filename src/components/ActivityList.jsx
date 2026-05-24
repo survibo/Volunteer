@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Pencil, Users } from "lucide-react";
-import { getActivityKind, listActivities, listApplicantCounts } from "../lib/activityApi";
+import { getActivityKind } from "../lib/activityApi";
+import { useActivities } from "../hooks/useActivities";
 import { deadlineDdayText, formatDateTime } from "../lib/dateUtils";
 import TopLoadingBar from "./TopLoadingBar";
 
@@ -94,41 +95,15 @@ export default function ActivityList({
 }) {
   const isAdmin = profile?.role === "admin";
   const kind = getActivityKind(table);
-  const [activities, setActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: activities = [], isLoading } = useActivities(kind, isAdmin);
   const [filter, setFilter] = useState("recruiting");
   const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function load() {
-      const data = await listActivities(kind);
-      if (!mounted) return
-
-      const counts = isAdmin
-        ? await listApplicantCounts(kind, data.map((a) => a.id))
-        : {}
-
-      if (!mounted) return
-      setActivities(data.map((a) => ({ ...a, _applicantCount: counts[a.id] ?? 0 })));
-      setLoading(false);
-    }
-
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [kind, isAdmin]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
       setNow(new Date());
     }, 1000);
-
-    return () => {
-      window.clearInterval(timer);
-    };
+    return () => window.clearInterval(timer);
   }, []);
 
   const groups = categorize(activities);
@@ -149,7 +124,7 @@ export default function ActivityList({
           {pageTitle}
         </h1>
 
-        {loading ? (
+        {isLoading ? (
           <TopLoadingBar />
         ) : (
           <div className="grid gap-6">
@@ -174,11 +149,18 @@ export default function ActivityList({
               </div>
             ) : (
               <div className="rounded-xl border border-border-default bg-surface-base p-6">
-                <strong>등록된 항목이 없습니다.</strong>
+                <strong>{
+                  filter === 'recruiting' ? '모집 중인 항목이 없습니다.' :
+                  filter === 'ongoing' ? '진행 중인 항목이 없습니다.' :
+                  filter === 'completed' ? '종료된 항목이 없습니다.' :
+                  '등록된 항목이 없습니다.'
+                }</strong>
                 <p className="mt-2 text-sm text-text-secondary">
-                  {isAdmin
-                    ? `새 ${sectionLabel}을(를) 개설해 보세요.`
-                    : `관리자가 ${sectionLabel}을(를) 개설하면 이곳에 표시됩니다.`}
+                  {filter === 'recruiting'
+                    ? (isAdmin ? `새 ${sectionLabel}을(를) 개설해 보세요.` : '다른 필터를 선택해 보세요.')
+                    : (isAdmin
+                        ? `새 ${sectionLabel}을(를) 개설해 보세요.`
+                        : `관리자가 ${sectionLabel}을(를) 개설하면 이곳에 표시됩니다.`)}
                 </p>
               </div>
             )}

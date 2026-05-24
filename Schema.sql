@@ -87,6 +87,7 @@ create table if not exists public.users (
   license_number      text,
   volunteer_experience text,                                                -- 봉사활동 이력 (선택)
   education_experience text,                                                -- 교육 이력 (선택)
+  avatar_path         text,                                                 -- 프로필 사진 object path (avatars bucket)
   approved_at         timestamptz,                                         -- 회원 승인 일시
   approved_by         uuid          references public.users(id) on delete set null,
   created_at          timestamptz   not null default now(),
@@ -107,13 +108,6 @@ create table if not exists public.users (
 
 create index if not exists users_role_idx on public.users(role);
 create unique index if not exists users_email_unique_idx on public.users(email);
-
-alter table public.users
-  add column if not exists volunteer_experience text,
-  add column if not exists education_experience text,
-  add column if not exists avatar_path text;
-
-
 
 
 -- =============================================================================
@@ -145,10 +139,6 @@ create table if not exists public.withdrawn_users (
 create index if not exists withdrawn_users_withdrawn_at_idx on public.withdrawn_users(withdrawn_at desc);
 create index if not exists withdrawn_users_email_idx        on public.withdrawn_users(email);
 
-alter table public.withdrawn_users
-  add column if not exists volunteer_experience text,
-  add column if not exists education_experience text;
-
 
 -- =============================================================================
 -- volunteer_activities
@@ -167,9 +157,10 @@ create table if not exists public.volunteer_activities (
   image_path           text,
   location             text        not null,
   application_deadline timestamptz not null,
-  starts_at            timestamptz not null,
-  ends_at              timestamptz not null,
+  starts_at            date        not null,
+  ends_at              date        not null,
   capacity             integer     not null,    -- 정원 초과 신청 허용; 관리자 판단용 값
+  chat_link            text,                                                  -- 오픈채팅방 링크 (수락된 신청자에게만 표시)
   created_by           uuid        references public.users(id) on delete set null,
   updated_by           uuid        references public.users(id) on delete set null,
   created_at           timestamptz not null default now(),
@@ -177,8 +168,7 @@ create table if not exists public.volunteer_activities (
   constraint volunteer_activities_capacity_check
     check (capacity > 0),
   constraint volunteer_activities_schedule_check
-    check (application_deadline::date <= starts_at::date and starts_at::date <= ends_at::date),
-  chat_link          text,                                                  -- 오픈채팅방 링크 (수락된 신청자에게만 표시)
+    check (application_deadline::date <= starts_at and starts_at <= ends_at),
   constraint volunteer_activities_image_path_check
     check (
       image_path is null
@@ -192,14 +182,6 @@ create table if not exists public.volunteer_activities (
 
 create index if not exists volunteer_activities_deadline_idx on public.volunteer_activities(application_deadline);
 create index if not exists volunteer_activities_starts_at_idx on public.volunteer_activities(starts_at);
-
-alter table public.volunteer_activities
-  add column if not exists chat_link text;
-
-alter table public.volunteer_activities
-  drop constraint if exists volunteer_activities_schedule_check,
-  add constraint volunteer_activities_schedule_check
-    check (application_deadline::date <= starts_at::date and starts_at::date <= ends_at::date);
 
 
 -- =============================================================================
@@ -278,8 +260,8 @@ create table if not exists public.educations (
   image_path           text,
   location             text        not null,
   application_deadline timestamptz not null,
-  starts_at            timestamptz not null,
-  ends_at              timestamptz not null,
+  starts_at            date        not null,
+  ends_at              date        not null,
   capacity             integer     not null,    -- 정원 초과 신청 허용; 관리자 판단용 값
   created_by           uuid        references public.users(id) on delete set null,
   updated_by           uuid        references public.users(id) on delete set null,
@@ -289,7 +271,7 @@ create table if not exists public.educations (
   constraint educations_capacity_check
     check (capacity > 0),
   constraint educations_schedule_check
-    check (application_deadline::date <= starts_at::date and starts_at::date <= ends_at::date),
+    check (application_deadline::date <= starts_at and starts_at <= ends_at),
   constraint educations_image_path_check
     check (
       image_path is null
@@ -303,14 +285,6 @@ create table if not exists public.educations (
 
 create index if not exists educations_deadline_idx on public.educations(application_deadline);
 create index if not exists educations_starts_at_idx on public.educations(starts_at);
-
-alter table public.educations
-  add column if not exists chat_link text;
-
-alter table public.educations
-  drop constraint if exists educations_schedule_check,
-  add constraint educations_schedule_check
-    check (application_deadline::date <= starts_at::date and starts_at::date <= ends_at::date);
 
 
 -- =============================================================================
@@ -618,9 +592,6 @@ begin
 end;
 $$;
 
-drop function if exists public.update_own_profile(text, text, text, text, text, text, text);
-drop function if exists public.update_own_profile(text, text, text, text, text, text, text, text);
-drop function if exists public.update_own_profile(text, text, text, text, text, text, text, text, text);
 drop function if exists public.update_own_profile(text, text, text, text, text, text, text, text, text, text);
 create function public.update_own_profile(
   new_name text,
@@ -778,6 +749,10 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_activity_id uuid;
+  v_capacity    integer;
+  v_accepted    integer;
 begin
   if not private.is_admin() then
     raise exception 'admin permission required';
@@ -785,6 +760,28 @@ begin
 
   if next_status not in ('accepted', 'rejected', 'cancelled') then
     raise exception 'unsupported application status';
+  end if;
+
+  if next_status = 'accepted' then
+    select volunteer_activity_id into v_activity_id
+    from public.volunteer_applications
+    where id = application_id;
+
+    if v_activity_id is null then
+      raise exception 'volunteer application not found';
+    end if;
+
+    select capacity into v_capacity
+    from public.volunteer_activities
+    where id = v_activity_id;
+
+    select count(*) into v_accepted
+    from public.volunteer_applications
+    where volunteer_activity_id = v_activity_id and status = 'accepted';
+
+    if v_accepted >= v_capacity then
+      raise exception '정원이 모두 찼습니다. (%/%)', v_accepted, v_capacity;
+    end if;
   end if;
 
   if next_status in ('accepted', 'rejected') then
@@ -825,6 +822,10 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_activity_id uuid;
+  v_capacity    integer;
+  v_accepted    integer;
 begin
   if not private.is_admin() then
     raise exception 'admin permission required';
@@ -832,6 +833,28 @@ begin
 
   if next_status not in ('accepted', 'rejected', 'cancelled') then
     raise exception 'unsupported application status';
+  end if;
+
+  if next_status = 'accepted' then
+    select education_id into v_activity_id
+    from public.education_applications
+    where id = application_id;
+
+    if v_activity_id is null then
+      raise exception 'education application not found';
+    end if;
+
+    select capacity into v_capacity
+    from public.educations
+    where id = v_activity_id;
+
+    select count(*) into v_accepted
+    from public.education_applications
+    where education_id = v_activity_id and status = 'accepted';
+
+    if v_accepted >= v_capacity then
+      raise exception '정원이 모두 찼습니다. (%/%)', v_accepted, v_capacity;
+    end if;
   end if;
 
   if next_status in ('accepted', 'rejected') then
@@ -934,7 +957,6 @@ create policy "Admins can update users"
   with check (private.is_admin());
 
 -- volunteer_activities
-drop policy if exists "Active users can read open volunteer activities" on public.volunteer_activities;
 drop policy if exists "Active users can read volunteer activities" on public.volunteer_activities;
 create policy "Active users can read volunteer activities"
   on public.volunteer_activities for select
@@ -967,7 +989,6 @@ create policy "Admins can delete volunteer activities"
   using (private.is_admin());
 
 -- educations
-drop policy if exists "Active users can read open educations" on public.educations;
 drop policy if exists "Active users can read educations" on public.educations;
 create policy "Active users can read educations"
   on public.educations for select

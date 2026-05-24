@@ -2,18 +2,15 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Link as LinkIcon, Pencil, Users } from "lucide-react";
 import {
-  applyToActivity,
-  cancelOwnApplication,
-  getActivity,
   getActivityConfig,
   getActivityKind,
-  getMyApplication,
 } from "../../lib/activityApi";
+import { useActivity, useApplyActivity, useCancelApplication, useMyApplication } from "../../hooks/useActivities";
 import { getImageUrl, parseImagePaths } from "../../lib/storageApi";
 import ImageWithFallback from "../../components/ImageWithFallback";
 import ImageViewer from "../../components/ImageViewer";
 import TopLoadingBar from "../../components/TopLoadingBar";
-import { deadlineDdayText, formatDateTime } from "../../lib/dateUtils";
+import { deadlineDdayText, formatDate, formatDateTime } from "../../lib/dateUtils";
 
 const statusLabel = {
   pending: "신청 대기",
@@ -28,15 +25,24 @@ export default function ActivityDetailPage({ table, profile }) {
   const isAdmin = profile?.role === "admin";
   const kind = getActivityKind(table);
   const cfg = getActivityConfig(kind);
-  const [activity, setActivity] = useState(null);
-  const [application, setApplication] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [now, setNow] = useState(() => new Date());
 
   const [linkCopied, setLinkCopied] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+
+  const {
+    data: activity,
+    isLoading: activityLoading,
+    isError: activityError,
+  } = useActivity(kind, id);
+  const {
+    data: application,
+    isLoading: appLoading,
+  } = useMyApplication(kind, id, profile.id);
+  const applyMutation = useApplyActivity(kind);
+  const cancelMutation = useCancelApplication(kind);
 
   const imageUrls = activity
     ? parseImagePaths(activity.image_path).map((p) => getImageUrl(kind, p))
@@ -50,81 +56,39 @@ export default function ActivityDetailPage({ table, profile }) {
   const myCancelledApp = application?.status === "cancelled";
 
   useEffect(() => {
-    let mounted = true;
-
-    async function load() {
-      try {
-        const activityData = await getActivity(kind, id);
-
-        if (!mounted) return;
-        setActivity(activityData);
-
-        const appData = await getMyApplication(kind, id, profile.id);
-
-        if (!mounted) return;
-        setApplication(appData);
-      } catch (error) {
-        if (mounted) setErrorMessage(error.message);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [id, kind, profile.id]);
-
-  useEffect(() => {
     const timer = window.setInterval(() => {
       setNow(new Date());
     }, 1000);
-
-    return () => {
-      window.clearInterval(timer);
-    };
+    return () => window.clearInterval(timer);
   }, []);
 
   async function handleApply() {
-    setSaving(true);
     setErrorMessage("");
-
-    try {
-      const nextApplication = await applyToActivity(
-        kind,
-        id,
-        profile.id,
-        application
-      );
-      setApplication(nextApplication);
-    } catch (error) {
-      setErrorMessage(error.message);
-    } finally {
-      setSaving(false);
-    }
+    applyMutation.mutate(
+      { activityId: id, userId: profile.id, existingApp: application },
+      {
+        onError: (error) => setErrorMessage(error.message),
+      }
+    );
   }
 
   async function handleCancel() {
-    setSaving(true);
+    setShowCancelModal(false)
     setErrorMessage("");
-
-    try {
-      await cancelOwnApplication(kind, application.id);
-      setApplication((prev) => (prev ? { ...prev, status: "cancelled" } : prev));
-    } catch (error) {
-      setErrorMessage(error.message);
-    } finally {
-      setSaving(false);
-    }
+    cancelMutation.mutate(
+      { appId: application.id },
+      {
+        onError: (error) => setErrorMessage(error.message),
+      }
+    );
   }
 
-  if (loading) {
+  if (activityLoading || appLoading) {
     return <LoadingState />;
   }
 
-  if (errorMessage && !activity) {
-    return <ErrorState message={errorMessage} />;
+  if (activityError && !activity) {
+    return <ErrorState message="데이터를 불러오는 중 오류가 발생했습니다." />;
   }
 
   if (!activity) {
@@ -222,13 +186,13 @@ export default function ActivityDetailPage({ table, profile }) {
         <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
           <dt className="text-xs font-semibold text-text-secondary">시작일</dt>
           <dd className="m-0 text-sm text-text-primary">
-            {formatDateTime(activity.starts_at)}
+            {formatDate(activity.starts_at)}
           </dd>
         </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
           <dt className="text-xs font-semibold text-text-secondary">종료일</dt>
           <dd className="m-0 text-sm text-text-primary">
-            {formatDateTime(activity.ends_at)}
+            {formatDate(activity.ends_at)}
           </dd>
         </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
@@ -277,11 +241,11 @@ export default function ActivityDetailPage({ table, profile }) {
           {myPendingApp && !deadlinePassed && (
             <button
               className="mt-4 min-h-[44px] cursor-pointer rounded-xl bg-status-error-bg px-5 font-semibold text-status-error-text hover:opacity-80 disabled:cursor-progress disabled:opacity-65"
-              disabled={saving}
+              disabled={cancelMutation.isPending}
               type="button"
-              onClick={handleCancel}
+              onClick={() => setShowCancelModal(true)}
             >
-              {saving ? "취소 중" : "신청 취소"}
+              {cancelMutation.isPending ? "취소 중" : "신청 취소"}
             </button>
           )}
         </div>
@@ -289,13 +253,51 @@ export default function ActivityDetailPage({ table, profile }) {
       {canApply && (!application || myCancelledApp) ? (
         <button
           className="min-h-[44px] w-full cursor-pointer rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65 md:w-auto"
-          disabled={saving}
+          disabled={applyMutation.isPending}
           type="button"
           onClick={handleApply}
         >
-          {saving ? "신청 중" : "신청하기"}
+          {applyMutation.isPending ? "신청 중" : "신청하기"}
         </button>
       ) : null}
+      {showCancelModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowCancelModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-surface-base p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-status-error-text">
+              신청 취소
+            </p>
+            <h2 className="text-lg font-bold text-text-primary">
+              정말 취소하시겠어요?
+            </h2>
+            <p className="mt-2 text-sm text-text-secondary">
+              "{activity.title}" 활동의 신청이 취소됩니다.
+            </p>
+            <div className="mt-5 flex gap-2.5">
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-status-error-text px-5 font-semibold text-white hover:opacity-80 disabled:cursor-progress disabled:opacity-65"
+                disabled={cancelMutation.isPending}
+                type="button"
+                onClick={handleCancel}
+              >
+                {cancelMutation.isPending ? "취소 중" : "취소하기"}
+              </button>
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"
+                type="button"
+                onClick={() => setShowCancelModal(false)}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {viewerIndex !== null && (
         <ImageViewer
           images={imageUrls}

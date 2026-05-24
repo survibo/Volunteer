@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { CheckCheck, Download, Search, X } from "lucide-react";
 import TopLoadingBar from "../../components/TopLoadingBar";
 import {
-  decideApplications,
-  getActivityMaybe,
   getActivityConfig,
   getActivityKind,
-  listApplications,
 } from "../../lib/activityApi";
+import {
+  useActivityMaybe,
+  useActivityApplications,
+  useDecideApplications,
+} from "../../hooks/useActivities";
 
 const statusLabel = {
   pending: "신청 대기",
@@ -91,9 +93,6 @@ export default function AdminApplicationsPage({ table }) {
   const { id } = useParams();
   const kind = getActivityKind(table);
   const cfg = getActivityConfig(kind);
-  const [activity, setActivity] = useState(null);
-  const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [processing, setProcessing] = useState(null);
   const [cancelConfirm, setCancelConfirm] = useState(null);
@@ -104,35 +103,17 @@ export default function AdminApplicationsPage({ table }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
 
-  useEffect(() => {
-    let mounted = true;
+  const {
+    data: activity,
+    isLoading: activityLoading,
+  } = useActivityMaybe(kind, id);
+  const {
+    data: applications = [],
+    isLoading: appsLoading,
+  } = useActivityApplications(kind, id);
+  const decideMutation = useDecideApplications(kind);
 
-    async function load() {
-      try {
-        const activityData = await getActivityMaybe(kind, id);
-
-        if (!mounted) return;
-
-        setActivity(activityData);
-
-        const appData = await listApplications(kind, id);
-
-        if (!mounted) return;
-        setApplications(appData);
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [id, kind]);
+  const loading = activityLoading || appsLoading;
 
   const acceptedCount = applications.filter(
     (app) => app?.status === "accepted"
@@ -180,19 +161,19 @@ export default function AdminApplicationsPage({ table }) {
   async function handleDecide(applicationIds, nextStatus) {
     setProcessing(applicationIds.length === 1 ? applicationIds[0] : "batch");
 
-    try {
-      await decideApplications(kind, applicationIds, nextStatus);
-      setSelectedIds(new Set());
-      setApplications((prev) =>
-        prev.map((a) =>
-          applicationIds.includes(a.id) ? { ...a, status: nextStatus } : a
-        )
-      );
-    } catch (error) {
-      alert(error.message);
-    } finally {
-      setProcessing(null);
-    }
+    decideMutation.mutate(
+      { appIds: applicationIds, status: nextStatus, activityId: id },
+      {
+        onSuccess: () => {
+          setSelectedIds(new Set());
+          setProcessing(null);
+        },
+        onError: (error) => {
+          alert(error.message);
+          setProcessing(null);
+        },
+      }
+    );
   }
 
   function openCancelConfirm(applicationIds) {

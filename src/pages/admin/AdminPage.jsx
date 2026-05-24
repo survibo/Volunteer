@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Download, Search } from "lucide-react";
 import TopLoadingBar from "../../components/TopLoadingBar";
-import { listMembers } from "../../lib/memberApi";
+import { useMembers } from "../../hooks/useMembers";
 
 function memberNumberText(member) {
   return member.member_number ?? "미부여";
@@ -48,41 +48,13 @@ function formatFilenameDate(date) {
 }
 
 export default function AdminPage() {
-  const [members, setMembers] = useState([]);
+  const { data: members = [], isLoading, error } = useMembers();
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportRoles, setExportRoles] = useState(
     () => new Set(["member", "pending", "admin"])
   );
   const [roleFilter, setRoleFilter] = useState("all");
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function load() {
-      try {
-        const data = await listMembers();
-        if (mounted) {
-          setMembers(data);
-        }
-      } catch (error) {
-        if (mounted) {
-          setErrorMessage(error.message);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const filteredMembers = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -223,10 +195,10 @@ export default function AdminPage() {
           />
         </label>
 
-        {loading ? (
+        {isLoading ? (
           <TopLoadingBar />
-        ) : errorMessage ? (
-          <p className="text-sm text-status-error-text">{errorMessage}</p>
+        ) : error ? (
+          <p className="text-sm text-status-error-text">{error.message}</p>
         ) : filteredMembers.length === 0 ? (
           <p className="text-sm text-text-secondary">표시할 회원이 없습니다.</p>
         ) : (

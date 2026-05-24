@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router'
-import { listMyApplications } from '../../lib/activityApi'
-import { formatDateTime } from '../../lib/dateUtils'
+import { useMyApplications } from '../../hooks/useActivities'
+import { formatDate } from '../../lib/dateUtils'
 import TopLoadingBar from '../../components/TopLoadingBar'
 
 const statusLabels = {
@@ -25,25 +25,11 @@ const kindFilters = [
 ]
 
 export default function MyHistoryPage({ profile, memberId, hideHeader }) {
-  const [applications, setApplications] = useState([])
-  const [loading, setLoading] = useState(true)
   const [kindFilter, setKindFilter] = useState('all')
   const userId = memberId ?? profile.id
+  const { data: applications = [], isLoading } = useMyApplications(userId)
 
-  useEffect(() => {
-    let mounted = true
-    async function load() {
-      const data = await listMyApplications(userId)
-      if (mounted) {
-        setApplications(data)
-        setLoading(false)
-      }
-    }
-    load()
-    return () => { mounted = false }
-  }, [userId])
-
-  if (loading) return <TopLoadingBar />
+  if (isLoading) return <TopLoadingBar />
 
   const now = new Date()
   const validApplications = applications.filter((a) => a?.status && a?._activity)
@@ -156,7 +142,7 @@ function ApplicationCard({ app, now }) {
           {kindLabel} · {activity.location}
         </p>
         <p>
-          {formatDateTime(activity.starts_at)} ~ {formatDateTime(activity.ends_at)}
+          {formatDate(activity.starts_at)} ~ {formatDate(activity.ends_at)}
         </p>
         <p className="text-xs text-text-tertiary">
           {isPast ? '종료' : '진행중'}

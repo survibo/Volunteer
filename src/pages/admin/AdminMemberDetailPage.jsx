@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import TopLoadingBar from '../../components/TopLoadingBar'
-import { approveMember, cancelMemberApproval, getMember, grantAdmin } from '../../lib/memberApi'
 import { downloadMemberCert } from '../../lib/pdfCert'
+import { useMember, useApproveMember, useCancelMemberApproval, useGrantAdmin } from '../../hooks/useMembers'
 import UserAvatar from '../../components/UserAvatar'
 
 function roleLabel(role) {
@@ -49,81 +49,77 @@ function getConfirmContent(action, memberName) {
 
 export default function AdminMemberDetailPage() {
   const { id } = useParams()
-  const [member, setMember] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [processing, setProcessing] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [confirmAction, setConfirmAction] = useState(null)
   const [memberNumberInput, setMemberNumberInput] = useState('')
 
-  useEffect(() => {
-    let mounted = true
+  const {
+    data: member,
+    isLoading,
+    isError,
+    error: queryError,
+  } = useMember(id)
+  const approveMutation = useApproveMember()
+  const cancelMutation = useCancelMemberApproval()
+  const grantMutation = useGrantAdmin()
 
-    async function load() {
-      try {
-        const data = await getMember(id)
-        if (mounted) {
-          setMember(data)
-        }
-      } catch (error) {
-        if (mounted) {
-          setErrorMessage(error.message)
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    load()
-    return () => { mounted = false }
-  }, [id])
+  const processing = approveMutation.isPending || cancelMutation.isPending || grantMutation.isPending
 
   async function handleConfirmAction() {
-    if (!confirmAction) {
-      return
-    }
+    if (!confirmAction) return
 
-    setProcessing(true)
     setErrorMessage('')
 
-    try {
-      let nextMember
-
-      if (confirmAction === 'approve') {
-        if (!memberNumberInput.match(/^\d{2}-\d{4}$/)) {
-          setErrorMessage('회원번호 형식이 올바르지 않습니다. (YY-NNNN)')
-          setProcessing(false)
-          return
-        }
-        nextMember = await approveMember(id, memberNumberInput)
-      } else if (confirmAction === 'admin') {
-        nextMember = await grantAdmin(id, memberNumberInput || undefined)
-      } else {
-        nextMember = await cancelMemberApproval(id)
+    if (confirmAction === 'approve') {
+      if (!memberNumberInput.match(/^\d{2}-\d{4}$/)) {
+        setErrorMessage('회원번호 형식이 올바르지 않습니다. (YY-NNNN)')
+        return
       }
-
-      setMember(nextMember)
-      setConfirmAction(null)
-      setMemberNumberInput('')
-    } catch (error) {
-      setErrorMessage(error.message)
-    } finally {
-      setProcessing(false)
+      approveMutation.mutate(
+        { id, memberNumber: memberNumberInput },
+        {
+          onSuccess: () => {
+            setConfirmAction(null)
+            setMemberNumberInput('')
+          },
+          onError: (error) => setErrorMessage(error.message),
+        }
+      )
+    } else if (confirmAction === 'admin') {
+      grantMutation.mutate(
+        { id, memberNumber: memberNumberInput || undefined },
+        {
+          onSuccess: () => {
+            setConfirmAction(null)
+            setMemberNumberInput('')
+          },
+          onError: (error) => setErrorMessage(error.message),
+        }
+      )
+    } else {
+      cancelMutation.mutate(
+        { id },
+        {
+          onSuccess: () => {
+            setConfirmAction(null)
+            setMemberNumberInput('')
+          },
+          onError: (error) => setErrorMessage(error.message),
+        }
+      )
     }
   }
 
-  if (loading) {
+  if (isLoading) {
     return <TopLoadingBar />
   }
 
-  if (errorMessage || !member) {
+  if (isError || !member) {
     return (
       <section className="grid gap-5 sm:gap-6">
         <div className="rounded-xl border border-border-default bg-surface-base p-5 sm:p-6">
-          <p className="text-sm text-status-error-text">{errorMessage || '회원을 찾을 수 없습니다.'}</p>
+          <p className="text-sm text-status-error-text">{queryError?.message || '회원을 찾을 수 없습니다.'}</p>
         </div>
       </section>
     )

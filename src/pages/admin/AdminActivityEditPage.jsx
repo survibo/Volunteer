@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Trash2 } from 'lucide-react'
-import { deleteActivity, getActivity, getActivityKind } from '../../lib/activityApi'
+import { deleteActivity, getActivityKind } from '../../lib/activityApi'
+import { useActivity } from '../../hooks/useActivities'
 import ActivityForm from '../../components/ActivityForm'
 import TopLoadingBar from '../../components/TopLoadingBar'
 
@@ -9,35 +10,11 @@ export default function AdminActivityEditPage({ table, redirectTo, sectionLabel,
   const { id } = useParams()
   const navigate = useNavigate()
   const kind = getActivityKind(table)
-  const [initialData, setInitialData] = useState(null)
-  const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  useEffect(() => {
-    let mounted = true
-
-    async function load() {
-      try {
-        const data = await getActivity(kind, id)
-        if (mounted) {
-          setInitialData(data)
-        }
-      } catch (error) {
-        if (mounted) {
-          setErrorMessage(error.message)
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    load()
-    return () => { mounted = false }
-  }, [id, kind])
+  const { data: initialData, isLoading, isError, error: queryError } = useActivity(kind, id)
 
   async function handleDelete() {
     setDeleting(true)
@@ -52,15 +29,15 @@ export default function AdminActivityEditPage({ table, redirectTo, sectionLabel,
     }
   }
 
-  if (loading) {
+  if (isLoading) {
     return <TopLoadingBar />
   }
 
-  if (errorMessage && !initialData) {
+  if (isError && !initialData) {
     return (
       <section className="grid gap-6">
         <div className="rounded-xl border border-border-default bg-surface-base p-6">
-          <p className="text-sm text-status-error-text">{errorMessage}</p>
+          <p className="text-sm text-status-error-text">{queryError?.message || '데이터를 불러올 수 없습니다.'}</p>
         </div>
       </section>
     )
@@ -100,9 +77,9 @@ export default function AdminActivityEditPage({ table, redirectTo, sectionLabel,
               이 {sectionLabel}을(를) 삭제하시겠습니까?<br />
               관련된 모든 신청 내역도 함께 삭제됩니다.
             </p>
-            {errorMessage && (
-              <p className="mt-3 text-sm text-status-error-text">{errorMessage}</p>
-            )}
+              {errorMessage && (
+                <p className="mt-3 text-sm text-status-error-text">{errorMessage}</p>
+              )}
             <div className="mt-5 flex gap-2.5">
               <button
                 className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-status-error-text px-5 font-semibold text-white hover:opacity-80 disabled:cursor-progress disabled:opacity-65"

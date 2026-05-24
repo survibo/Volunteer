@@ -64,7 +64,10 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
     return parseImagePaths(initialData?.image_path).map((path) => ({ kind: 'existing', path }))
   })
   const [saving, setSaving] = useState(false)
+  const [savePhase, setSavePhase] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [confirmedPayload, setConfirmedPayload] = useState(null)
 
   function updateField(e) {
     const { name, value } = e.target
@@ -100,9 +103,8 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
     })
   }
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault()
-    setSaving(true)
     setErrorMessage('')
 
     const title = form.title.trim()
@@ -110,43 +112,53 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
     const capacity = parseInt(form.capacity, 10)
 
     if (!title || !location || !form.application_deadline || !form.starts_at || !form.ends_at || !form.capacity) {
-      setSaving(false)
       setErrorMessage('모든 필수 항목을 입력해 주세요.')
       return
     }
 
     if (capacity < 1) {
-      setSaving(false)
       setErrorMessage('정원은 1명 이상이어야 합니다.')
       return
     }
 
     if (toLocalDateKey(form.application_deadline) > form.starts_at) {
-      setSaving(false)
       setErrorMessage('신청 마감일은 시작일보다 늦을 수 없습니다.')
       return
     }
 
     if (form.starts_at > form.ends_at) {
-      setSaving(false)
       setErrorMessage('종료일은 시작일보다 빠를 수 없습니다.')
       return
     }
 
+    setConfirmedPayload({ title, location, capacity })
+    setShowConfirmModal(true)
+  }
+
+  async function handleConfirmSave() {
+    setShowConfirmModal(false)
+    setSaving(true)
+    setErrorMessage('')
+
+    const { title, location, capacity } = confirmedPayload
     const existingItems = images.filter((item) => item.kind === 'existing')
     const newItems = images.filter((item) => item.kind === 'new')
     let allPaths = existingItems.map((item) => item.path)
 
     if (newItems.length > 0) {
       try {
+        setSavePhase('이미지 업로드 중')
         const newPaths = await uploadActivityImages(kind, newItems.map((item) => item.file))
         allPaths = [...allPaths, ...newPaths]
       } catch (error) {
         setSaving(false)
+        setSavePhase('')
         setErrorMessage(error.message)
         return
       }
     }
+
+    setSavePhase('저장 중')
 
     const payload = {
       title,
@@ -154,8 +166,8 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
       image_path: allPaths.length > 0 ? JSON.stringify(allPaths) : null,
       location,
       application_deadline: new Date(form.application_deadline).toISOString(),
-      starts_at: new Date(form.starts_at).toISOString(),
-      ends_at: new Date(form.ends_at).toISOString(),
+      starts_at: form.starts_at,
+      ends_at: form.ends_at,
       capacity,
       chat_link: form.chat_link.trim() || null,
     }
@@ -172,9 +184,9 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
       error = caughtError
     }
 
-    setSaving(false)
-
     if (error) {
+      setSaving(false)
+      setSavePhase('')
       setErrorMessage(error.message)
       return
     }
@@ -365,7 +377,7 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
             disabled={saving}
             type="submit"
           >
-            {saving ? '저장 중' : isEdit ? '저장' : '생성'}
+            {savePhase || (saving ? '저장 중' : isEdit ? '저장' : '생성')}
           </button>
           <button
             className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle sm:w-auto"
@@ -376,6 +388,79 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
           </button>
         </div>
       </form>
+
+      {showConfirmModal && confirmedPayload && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowConfirmModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-surface-base p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">
+              {sectionLabel} {isEdit ? '수정' : '생성'}
+            </p>
+            <h2 className="text-lg font-bold text-text-primary">
+              입력 내용을 확인해 주세요
+            </h2>
+            <dl className="mt-4 grid gap-3 text-sm">
+              <div className="grid grid-cols-[80px_1fr] gap-2">
+                <dt className="font-medium text-text-secondary">제목</dt>
+                <dd className="m-0 text-text-primary">{confirmedPayload.title}</dd>
+              </div>
+              <div className="grid grid-cols-[80px_1fr] gap-2">
+                <dt className="font-medium text-text-secondary">장소</dt>
+                <dd className="m-0 text-text-primary">{confirmedPayload.location}</dd>
+              </div>
+              <div className="grid grid-cols-[80px_1fr] gap-2">
+                <dt className="font-medium text-text-secondary">정원</dt>
+                <dd className="m-0 text-text-primary">{confirmedPayload.capacity}명</dd>
+              </div>
+              <div className="grid grid-cols-[80px_1fr] gap-2">
+                <dt className="font-medium text-text-secondary">마감일</dt>
+                <dd className="m-0 text-text-primary">{form.application_deadline}</dd>
+              </div>
+              <div className="grid grid-cols-[80px_1fr] gap-2">
+                <dt className="font-medium text-text-secondary">시작일</dt>
+                <dd className="m-0 text-text-primary">{form.starts_at}</dd>
+              </div>
+              <div className="grid grid-cols-[80px_1fr] gap-2">
+                <dt className="font-medium text-text-secondary">종료일</dt>
+                <dd className="m-0 text-text-primary">{form.ends_at}</dd>
+              </div>
+              {form.chat_link.trim() && (
+                <div className="grid grid-cols-[80px_1fr] gap-2">
+                  <dt className="font-medium text-text-secondary">채팅방</dt>
+                  <dd className="m-0 truncate text-text-primary">{form.chat_link.trim()}</dd>
+                </div>
+              )}
+              {images.length > 0 && (
+                <div className="grid grid-cols-[80px_1fr] gap-2">
+                  <dt className="font-medium text-text-secondary">이미지</dt>
+                  <dd className="m-0 text-text-primary">{images.length}개</dd>
+                </div>
+              )}
+            </dl>
+            <div className="mt-5 flex gap-2.5">
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover"
+                type="button"
+                onClick={handleConfirmSave}
+              >
+                확인
+              </button>
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+              >
+                수정
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
