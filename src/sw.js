@@ -2,9 +2,40 @@
 /// <reference lib="webworker" />
 
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
+import { registerRoute } from 'workbox-routing'
+import { StaleWhileRevalidate } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
 
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
+
+registerRoute(
+  ({ url }) =>
+    url.hostname.includes('supabase.co') &&
+    url.pathname.includes('/storage/v1/object/public/'),
+  new StaleWhileRevalidate({
+    cacheName: 'cache-v1-storage',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 200,
+        maxAgeSeconds: 7 * 24 * 60 * 60,
+      }),
+    ],
+  }),
+)
+
+self.addEventListener('activate', (event) => {
+  const current = ['cache-v1-storage']
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((k) => k.startsWith('cache-v') && !current.includes(k))
+          .map((k) => caches.delete(k)),
+      ),
+    ),
+  )
+})
 
 self.addEventListener('push', (event) => {
   if (!event.data) return
