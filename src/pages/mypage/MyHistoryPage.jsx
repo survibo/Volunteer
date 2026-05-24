@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router'
 import { useMyApplications } from '../../hooks/useActivities'
 import { formatDate } from '../../lib/dateUtils'
@@ -29,20 +29,33 @@ export default function MyHistoryPage({ profile, memberId, hideHeader }) {
   const userId = memberId ?? profile.id
   const { data: applications = [], isLoading } = useMyApplications(userId)
 
-  if (isLoading) return <TopLoadingBar />
+  const validApplications = useMemo(
+    () => applications.filter((a) => a?.status && a?._activity),
+    [applications]
+  )
+  const filtered = useMemo(
+    () => kindFilter === 'all' ? validApplications : validApplications.filter((a) => a.kind === kindFilter),
+    [validApplications, kindFilter]
+  )
+  const now = useMemo(() => new Date(), [])
+  const current = useMemo(
+    () => filtered.filter(
+      (a) => a.status === 'pending' || (a.status === 'accepted' && new Date(a._activity.ends_at) > now)
+    ),
+    [filtered, now]
+  )
+  const completed = useMemo(
+    () => filtered.filter(
+      (a) => a.status === 'accepted' && new Date(a._activity.ends_at) <= now
+    ),
+    [filtered, now]
+  )
+  const other = useMemo(
+    () => filtered.filter((a) => a.status === 'rejected'),
+    [filtered]
+  )
 
-  const now = new Date()
-  const validApplications = applications.filter((a) => a?.status && a?._activity)
-  const filtered = kindFilter === 'all' ? validApplications : validApplications.filter((a) => a.kind === kindFilter)
-  const current = filtered.filter(
-    (a) => a.status === 'pending' || (a.status === 'accepted' && new Date(a._activity.ends_at) > now)
-  )
-  const completed = filtered.filter(
-    (a) => a.status === 'accepted' && new Date(a._activity.ends_at) <= now
-  )
-  const other = filtered.filter(
-    (a) => a.status === 'rejected'
-  )
+  if (isLoading) return <TopLoadingBar />
 
   return (
     <section className="grid gap-6">

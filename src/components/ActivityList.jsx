@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Pencil, Users } from "lucide-react";
 import { getActivityKind } from "../lib/activityApi";
-import { useActivities } from "../hooks/useActivities";
+import { useActivities, useApplicantCounts } from "../hooks/useActivities";
 import { deadlineDdayText, formatDateTime } from "../lib/dateUtils";
 import TopLoadingBar from "./TopLoadingBar";
 
@@ -95,7 +95,12 @@ export default function ActivityList({
 }) {
   const isAdmin = profile?.role === "admin";
   const kind = getActivityKind(table);
-  const { data: activities = [], isLoading } = useActivities(kind, isAdmin);
+  const { data: activities = [], isLoading } = useActivities(kind);
+  const activityIds = activities.map((a) => a.id);
+  const { data: counts = {} } = useApplicantCounts(kind, activityIds);
+  const activitiesWithCounts = isAdmin
+    ? activities.map((a) => ({ ...a, _applicantCount: counts[a.id] ?? 0 }))
+    : activities;
   const [filter, setFilter] = useState("recruiting");
   const [now, setNow] = useState(() => new Date());
 
@@ -106,7 +111,7 @@ export default function ActivityList({
     return () => window.clearInterval(timer);
   }, []);
 
-  const groups = categorize(activities);
+  const groups = categorize(activitiesWithCounts);
 
   let activeItems;
   if (filter === "all") {

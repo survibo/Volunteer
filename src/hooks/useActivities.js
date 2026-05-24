@@ -15,16 +15,20 @@ import {
   updateActivity,
 } from "../lib/activityApi";
 
-export function useActivities(kind, isAdmin = false) {
+export function useActivities(kind) {
   return useQuery({
     queryKey: ["activities", kind],
-    queryFn: async () => {
-      const data = await listActivities(kind);
-      const ids = data.map((a) => a.id);
-      const counts = isAdmin ? await listApplicantCounts(kind, ids) : {};
-      return data.map((a) => ({ ...a, _applicantCount: counts[a.id] ?? 0 }));
-    },
+    queryFn: () => listActivities(kind),
     staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useApplicantCounts(kind, activityIds) {
+  return useQuery({
+    queryKey: ["applicant-counts", kind],
+    queryFn: () => listApplicantCounts(kind, activityIds),
+    staleTime: 30 * 1000,
+    enabled: activityIds.length > 0,
   });
 }
 

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import { Bell, BellOff, BellRing, Check } from 'lucide-react'
-import { useNotifications, useUnreadCount, useMarkAsRead, useMarkAllAsRead } from '../hooks/useNotifications'
+import { useNotifications, useMarkAsRead, useMarkAllAsRead } from '../hooks/useNotifications'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 import { getNotificationLink } from '../lib/notificationLinks'
 
@@ -10,7 +10,7 @@ export default function NotificationBell({ userId }) {
   const panelRef = useRef(null)
   const navigate = useNavigate()
   const { data: notifications, isLoading } = useNotifications(userId)
-  const { data: unreadCount = 0 } = useUnreadCount(userId)
+  const unreadCount = notifications?.filter((n) => !n.is_read).length ?? 0
   const markAsRead = useMarkAsRead(userId)
   const markAllAsRead = useMarkAllAsRead(userId)
   const pushNotifications = usePushNotifications(userId)

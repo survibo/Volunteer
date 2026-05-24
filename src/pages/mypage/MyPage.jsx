@@ -145,13 +145,26 @@ export default function MyPage({ profile }) {
         </div>
       </dl>
       <div className="border-t border-border-default pt-5 sm:pt-6">
-        <button
-          className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-transparent bg-status-error-text px-5 font-semibold text-white hover:opacity-80 sm:w-auto"
-          type="button"
-          onClick={() => setShowSignOutModal(true)}
-        >
-          로그아웃
-        </button>
+        <div className="flex flex-wrap gap-2.5">
+          <button
+            className="inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-transparent bg-status-error-text px-5 font-semibold text-white hover:opacity-80"
+            type="button"
+            onClick={() => setShowSignOutModal(true)}
+          >
+            로그아웃
+          </button>
+          <button
+            className="inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-border-default bg-surface-base px-5 text-xs text-text-tertiary hover:bg-surface-subtle"
+            type="button"
+            onClick={async () => {
+              const keys = await caches.keys()
+              await Promise.all(keys.map(k => caches.delete(k)))
+              window.location.reload()
+            }}
+          >
+            새로고침
+          </button>
+        </div>
       </div>
       {showSignOutModal && (
         <div

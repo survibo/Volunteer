@@ -156,7 +156,7 @@ export default function ActivityDetailPage({ table, profile }) {
         <div className="flex flex-col gap-3">
           {imageUrls.map((url, i) => (
             <button
-              key={i}
+              key={url}
               className="w-full cursor-pointer rounded-xl p-0 text-left"
               type="button"
               onClick={() => setViewerIndex(i)}
