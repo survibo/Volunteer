@@ -13,7 +13,7 @@ export function useNotifications(userId) {
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(50);
       if (error) throw error;
       return data ?? [];
     },

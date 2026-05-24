@@ -1,11 +1,18 @@
 import { useRegisterSW } from 'virtual:pwa-register/react'
 
+const SW_UPDATE_INTERVAL = 30 * 60 * 1000
+
 export default function ReloadPrompt() {
   const {
     offlineReady: [offlineReady, setOfflineReady],
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
-  } = useRegisterSW()
+  } = useRegisterSW({
+    onRegisteredSW(_swUrl, registration) {
+      if (!registration) return
+      setInterval(() => registration.update(), SW_UPDATE_INTERVAL)
+    },
+  })
 
   const close = () => {
     setOfflineReady(false)

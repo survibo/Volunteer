@@ -102,7 +102,7 @@ export default function ActivityList({
   useEffect(() => {
     const timer = window.setInterval(() => {
       setNow(new Date());
-    }, 1000);
+    }, 60000);
     return () => window.clearInterval(timer);
   }, []);
 

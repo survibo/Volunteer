@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import AppFrame from './components/AppFrame'
 import AddToHomeScreen from './components/AddToHomeScreen'
@@ -5,25 +6,26 @@ import ReloadPrompt from './components/ReloadPrompt'
 import TopLoadingBar from './components/TopLoadingBar'
 import { getHomePath } from './lib/auth'
 import { useCurrentProfile } from './hooks/useCurrentProfile'
-import ActivityDetailPage from './pages/activity/ActivityDetailPage'
-import AdminPage from './pages/admin/AdminPage'
-import AdminActivityEditPage from './pages/admin/AdminActivityEditPage'
-import AdminApplicationsPage from './pages/admin/AdminApplicationsPage'
-import AdminMemberDetailPage from './pages/admin/AdminMemberDetailPage'
-import AdminMemberHistoryPage from './pages/admin/AdminMemberHistoryPage'
-import AuthCallbackPage from './pages/auth/AuthCallbackPage'
-import ComingSoonPage from './pages/ComingSoonPage'
-import CreateEducationPage from './pages/admin/CreateEducationPage'
-import CreateVolunteerPage from './pages/admin/CreateVolunteerPage'
-import EducationPage from './pages/activity/EducationPage'
-import LoginPage from './pages/auth/LoginPage'
-import MyHistoryPage from './pages/mypage/MyHistoryPage'
-import MyPage from './pages/mypage/MyPage'
-import MyPageEditPage from './pages/mypage/MyPageEditPage'
-import NotFoundPage from './pages/NotFoundPage'
-import PendingPage from './pages/PendingPage'
-import RegisterPage from './pages/auth/RegisterPage'
-import VolunteerPage from './pages/activity/VolunteerPage'
+
+const ActivityDetailPage = lazy(() => import('./pages/activity/ActivityDetailPage'))
+const AdminPage = lazy(() => import('./pages/admin/AdminPage'))
+const AdminActivityEditPage = lazy(() => import('./pages/admin/AdminActivityEditPage'))
+const AdminApplicationsPage = lazy(() => import('./pages/admin/AdminApplicationsPage'))
+const AdminMemberDetailPage = lazy(() => import('./pages/admin/AdminMemberDetailPage'))
+const AdminMemberHistoryPage = lazy(() => import('./pages/admin/AdminMemberHistoryPage'))
+const AuthCallbackPage = lazy(() => import('./pages/auth/AuthCallbackPage'))
+const ComingSoonPage = lazy(() => import('./pages/ComingSoonPage'))
+const CreateEducationPage = lazy(() => import('./pages/admin/CreateEducationPage'))
+const CreateVolunteerPage = lazy(() => import('./pages/admin/CreateVolunteerPage'))
+const EducationPage = lazy(() => import('./pages/activity/EducationPage'))
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
+const MyHistoryPage = lazy(() => import('./pages/mypage/MyHistoryPage'))
+const MyPage = lazy(() => import('./pages/mypage/MyPage'))
+const MyPageEditPage = lazy(() => import('./pages/mypage/MyPageEditPage'))
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+const PendingPage = lazy(() => import('./pages/PendingPage'))
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
+const VolunteerPage = lazy(() => import('./pages/activity/VolunteerPage'))
 
 function PublicOnly({ children }) {
   const { data: profile, isLoading, error } = useCurrentProfile()
@@ -88,7 +90,8 @@ export default function App() {
     <BrowserRouter>
       <ReloadPrompt />
       <AddToHomeScreen />
-      <Routes>
+      <Suspense fallback={<TopLoadingBar />}>
+        <Routes>
         <Route
           path="/"
           element={
@@ -204,6 +207,7 @@ export default function App() {
           element={<ProtectedRoute>{() => <NotFoundPage />}</ProtectedRoute>}
         />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }

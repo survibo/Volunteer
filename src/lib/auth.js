@@ -51,7 +51,10 @@ export async function exchangeOAuthCode(code) {
   }
 
   const { error } = await supabase.auth.exchangeCodeForSession(code)
-  if (error && !error.message.toLowerCase().includes('invalid flow state')) {
+  if (error) {
+    if (error.message.toLowerCase().includes('invalid flow state')) {
+      return
+    }
     throw error
   }
 }
@@ -116,7 +119,7 @@ export async function updateOwnProfile(payload) {
     new_volunteer_experience: payload.volunteer_experience,
     new_education_experience: payload.education_experience,
     new_avatar_path: payload.avatar_path ?? null,
-    new_birthday: payload.birthday || null,
+    new_birthday: payload.birthday,
   })
 
   if (error) {

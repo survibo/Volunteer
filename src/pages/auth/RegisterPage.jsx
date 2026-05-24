@@ -104,11 +104,11 @@ export default function RegisterPage() {
     const address_detail = form.address_detail.trim() || ''
     const workplace_or_school = form.workplace_or_school.trim()
     const license_number = form.license_number.trim() || null
-    const birthday = form.birthday || null
+    const birthday = form.birthday
     const volunteer_experience = form.volunteer_experience.trim() || null
     const education_experience = form.education_experience.trim() || null
 
-    if (!name || !phone || !email || !address || !address_detail || !workplace_or_school) {
+    if (!name || !phone || !email || !address || !address_detail || !workplace_or_school || !birthday) {
       setSaving(false)
       setErrorMessage('필수 항목을 모두 입력해 주세요.')
       return
@@ -317,11 +317,12 @@ export default function RegisterPage() {
             />
           </label>
           <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-            생년월일
+            <span>생년월일 <span className="text-status-error-text">*</span></span>
             <input
               className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
               name="birthday"
               type="date"
+              required
               value={form.birthday}
               onChange={updateField}
             />

@@ -116,7 +116,7 @@ create table if not exists public.users (
   address_detail       text              not null default '',
   workplace_or_school  text              not null,
   license_number       text,
-  birthday             date,
+  birthday             date not null,
   volunteer_experience text,
   education_experience text,
   avatar_path          text,
@@ -140,6 +140,7 @@ create table if not exists public.users (
 
 create index if not exists users_role_idx on public.users(role);
 create unique index if not exists users_email_unique_idx on public.users(email);
+create index if not exists users_approved_by_idx on public.users(approved_by);
 
 
 -- ---------------------------------------------------------------------------
@@ -214,6 +215,8 @@ create table if not exists public.volunteer_activities (
 
 create index if not exists volunteer_activities_deadline_idx  on public.volunteer_activities(application_deadline);
 create index if not exists volunteer_activities_starts_at_idx on public.volunteer_activities(starts_at);
+create index if not exists volunteer_activities_created_by_idx on public.volunteer_activities(created_by);
+create index if not exists volunteer_activities_updated_by_idx on public.volunteer_activities(updated_by);
 
 
 -- ---------------------------------------------------------------------------
@@ -273,6 +276,8 @@ create table if not exists public.volunteer_applications (
 create index if not exists volunteer_applications_user_status_idx     on public.volunteer_applications(user_id, status);
 create index if not exists volunteer_applications_activity_status_idx on public.volunteer_applications(volunteer_activity_id, status);
 create index if not exists volunteer_applications_created_at_idx      on public.volunteer_applications(created_at desc);
+create index if not exists volunteer_applications_decided_by_idx      on public.volunteer_applications(decided_by);
+create index if not exists volunteer_applications_cancelled_by_idx    on public.volunteer_applications(cancelled_by);
 
 
 -- ---------------------------------------------------------------------------
@@ -317,6 +322,8 @@ create table if not exists public.educations (
 
 create index if not exists educations_deadline_idx  on public.educations(application_deadline);
 create index if not exists educations_starts_at_idx on public.educations(starts_at);
+create index if not exists educations_created_by_idx on public.educations(created_by);
+create index if not exists educations_updated_by_idx on public.educations(updated_by);
 
 
 -- ---------------------------------------------------------------------------
@@ -376,6 +383,8 @@ create table if not exists public.education_applications (
 create index if not exists education_applications_user_status_idx      on public.education_applications(user_id, status);
 create index if not exists education_applications_education_status_idx on public.education_applications(education_id, status);
 create index if not exists education_applications_created_at_idx       on public.education_applications(created_at desc);
+create index if not exists education_applications_decided_by_idx       on public.education_applications(decided_by);
+create index if not exists education_applications_cancelled_by_idx     on public.education_applications(cancelled_by);
 
 
 -- ---------------------------------------------------------------------------
@@ -399,6 +408,12 @@ create index if not exists idx_notifications_user
 
 create index if not exists idx_notifications_unread
   on public.notifications(user_id) where not is_read;
+
+create index if not exists idx_notifications_type
+  on public.notifications(type);
+
+create index if not exists idx_notifications_deadline_dedup
+  on public.notifications(type, (data->>'activity_id'), (data->>'hours'));
 
 
 -- ---------------------------------------------------------------------------
@@ -511,7 +526,7 @@ grant usage on type public.user_role to authenticated;
 grant usage on type public.application_status to authenticated;
 grant usage on type public.notification_type to authenticated;
 
-grant select, insert, update on table public.users                to authenticated;
+grant select, insert on table public.users                        to authenticated;
 grant select on table public.withdrawn_users                      to authenticated;
 grant select, insert, update, delete on table public.volunteer_activities   to authenticated;
 grant select, insert, update on table public.volunteer_applications         to authenticated;
@@ -693,19 +708,19 @@ begin
 end;
 $$;
 
-drop function if exists public.update_own_profile(text, text, text, text, text, text, text, text, text, text, date);
+drop function if exists public.update_own_profile(text, text, text, text, text, date, text, text, text, text, text);
 create function public.update_own_profile(
   new_name                  text,
   new_phone                 text,
   new_email                 text,
   new_address               text,
   new_workplace_or_school   text,
+  new_birthday              date,
   new_address_detail        text default '',
   new_license_number        text default null,
   new_volunteer_experience  text default null,
   new_education_experience  text default null,
-  new_avatar_path           text default null,
-  new_birthday              date default null
+  new_avatar_path           text default null
 )
 returns void
 language plpgsql
@@ -992,10 +1007,37 @@ begin
 end;
 $$;
 
+drop function if exists public.cancel_member_approval(uuid);
+create function public.cancel_member_approval(target_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not private.is_admin() then
+    raise exception 'admin permission required';
+  end if;
+
+  update public.users
+  set role = 'pending',
+      member_number = null,
+      approved_at = null,
+      approved_by = null
+  where id = target_user_id
+    and role = 'member';
+
+  if not found then
+    raise exception 'target user is not an approved member';
+  end if;
+end;
+$$;
+
 revoke all on function public.cancel_registration() from public;
 revoke all on function public.approve_member(uuid, text) from public;
 revoke all on function public.grant_admin(uuid, text) from public;
-revoke all on function public.update_own_profile(text, text, text, text, text, text, text, text, text, text, date) from public;
+revoke all on function public.cancel_member_approval(uuid) from public;
+revoke all on function public.update_own_profile(text, text, text, text, text, date, text, text, text, text, text) from public;
 revoke all on function public.cancel_own_volunteer_application(uuid) from public;
 revoke all on function public.withdraw_current_user() from public;
 revoke all on function public.cancel_own_education_application(uuid) from public;
@@ -1005,7 +1047,8 @@ revoke all on function public.decide_education_application(uuid, public.applicat
 grant execute on function public.cancel_registration() to authenticated;
 grant execute on function public.approve_member(uuid, text) to authenticated;
 grant execute on function public.grant_admin(uuid, text) to authenticated;
-grant execute on function public.update_own_profile(text, text, text, text, text, text, text, text, text, text, date) to authenticated;
+grant execute on function public.cancel_member_approval(uuid) to authenticated;
+grant execute on function public.update_own_profile(text, text, text, text, text, date, text, text, text, text, text) to authenticated;
 grant execute on function public.cancel_own_volunteer_application(uuid) to authenticated;
 grant execute on function public.withdraw_current_user() to authenticated;
 grant execute on function public.cancel_own_education_application(uuid) to authenticated;
@@ -1725,7 +1768,7 @@ create policy "notifications_update_own"
 drop policy if exists "notifications_insert_service" on public.notifications;
 create policy "notifications_insert_service"
   on public.notifications for insert
-  with check (true);
+  with check (auth.uid() = user_id);
 
 -- ---------------------------------------------------------------------------
 -- 12.8 device_tokens
@@ -1839,7 +1882,11 @@ drop policy if exists "Authenticated users can upload avatars bucket objects" on
 create policy "Authenticated users can upload avatars bucket objects"
   on storage.objects for insert
   to authenticated
-  with check (bucket_id = 'avatars' and auth.role() = 'authenticated');
+  with check (
+    bucket_id = 'avatars'
+    and auth.role() = 'authenticated'
+    and (metadata->>'size')::bigint < 5242880
+  );
 
 drop policy if exists "Authenticated users can update avatars bucket objects" on storage.objects;
 create policy "Authenticated users can update avatars bucket objects"

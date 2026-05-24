@@ -1,7 +1,16 @@
-import * as pdfjsLib from "pdfjs-dist";
-import { PDFDocument } from "pdf-lib";
+let pdfjsLib, PDFDocument, pdfLibLoaded = false;
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+async function ensurePdfLibs() {
+  if (pdfLibLoaded) return;
+  const [a, b] = await Promise.all([
+    import("pdfjs-dist"),
+    import("pdf-lib"),
+  ]);
+  pdfjsLib = a;
+  PDFDocument = b.PDFDocument;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+  pdfLibLoaded = true;
+}
 
 function dataUrlToBytes(dataUrl) {
   const binary = atob(dataUrl.split(",")[1]);
@@ -35,6 +44,7 @@ async function loadGungsuhFont() {
 }
 
 export async function downloadMemberCert(member, returnBlob) {
+  await ensurePdfLibs();
   await loadGungsuhFont();
 
   const pdfUrl = "/k-spara.pdf";

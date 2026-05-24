@@ -6,7 +6,7 @@ function throwIfError(error) {
   }
 }
 
-const memberSelect = 'id, role, member_number, name, phone, email, address, address_detail, workplace_or_school, license_number, volunteer_experience, education_experience, avatar_path, approved_at, created_at'
+const memberSelect = 'id, role, member_number, name, phone, email, address, address_detail, workplace_or_school, license_number, birthday, volunteer_experience, education_experience, avatar_path, approved_at, created_at'
 
 export async function listMembers() {
   const { data, error } = await supabase
@@ -43,16 +43,9 @@ export async function approveMember(id, memberNumber) {
 }
 
 export async function cancelMemberApproval(id) {
-  const { error } = await supabase
-    .from('users')
-    .update({
-      role: 'pending',
-      member_number: null,
-      approved_at: null,
-      approved_by: null,
-    })
-    .eq('id', id)
-    .eq('role', 'member')
+  const { error } = await supabase.rpc('cancel_member_approval', {
+    target_user_id: id,
+  })
 
   throwIfError(error)
 
