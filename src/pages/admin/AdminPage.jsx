@@ -4,6 +4,24 @@ import { Download, Search } from "lucide-react";
 import TopLoadingBar from "../../components/TopLoadingBar";
 import { useMembers } from "../../hooks/useMembers";
 
+const CHIP_STYLES = {
+  red:    { bg: '#FEF2F2', border: '#FECACA', text: '#B91C1C' },
+  orange: { bg: '#FFF7ED', border: '#FED7AA', text: '#C2410C' },
+  yellow: { bg: '#FEFCE8', border: '#FEF08A', text: '#A16207' },
+  green:  { bg: '#F0FDF4', border: '#BBF7D0', text: '#15803D' },
+  blue:   { bg: '#EFF6FF', border: '#BFDBFE', text: '#1D4ED8' },
+  indigo: { bg: '#EEF2FF', border: '#C7D2FE', text: '#4338CA' },
+  purple: { bg: '#FAF5FF', border: '#E9D5FF', text: '#7E22CE' },
+  pink:   { bg: '#FDF2F8', border: '#FBCFE8', text: '#BE185D' },
+  brown:  { bg: '#FFF7ED', border: '#FED7AA', text: '#92400E' },
+  gray:   { bg: '#F9FAFB', border: '#E5E7EB', text: '#374151' },
+}
+
+function parseChip(value) {
+  if (!value) return null
+  try { return JSON.parse(value) } catch { return null }
+}
+
 function memberNumberText(member) {
   return member.member_number ?? "미부여";
 }
@@ -19,6 +37,7 @@ const filterRoleOptions = [
   { value: "pending", label: "준회원" },
   { value: "member", label: "정회원" },
   { value: "admin", label: "관리자" },
+  { value: "memo", label: "메모 있음" },
 ];
 
 function roleLabel(role) {
@@ -60,6 +79,10 @@ export default function AdminPage() {
     const keyword = query.trim().toLowerCase();
 
     return members.filter((member) => {
+      if (roleFilter === "memo") {
+        return !!member.memo;
+      }
+
       if (roleFilter !== "all" && member.role !== roleFilter) {
         return false;
       }
@@ -203,25 +226,48 @@ export default function AdminPage() {
           <p className="text-sm text-text-secondary">표시할 회원이 없습니다.</p>
         ) : (
           <div className="grid gap-2">
-            {filteredMembers.map((member) => (
-              <Link
-                className="grid gap-1 rounded-lg border border-border-default bg-white px-4 py-3 hover:bg-surface-subtle sm:grid-cols-[1fr_auto] sm:items-center"
-                key={member.id}
-                to={`/admin/members/${member.id}`}
-              >
-                <span className="flex flex-wrap items-center gap-2 font-semibold text-text-primary">
-                  <span>{member.name}</span>
-                  {member.role === "admin" && (
-                    <span className="rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
-                      관리자
+            {filteredMembers.map((member) => {
+              const chip = parseChip(member.user_chip)
+              const chipStyle = chip ? CHIP_STYLES[chip.color] : null
+              return (
+                <Link
+                  className="grid gap-1 rounded-lg border border-border-default bg-white px-4 py-3 hover:bg-surface-subtle"
+                  key={member.id}
+                  to={`/admin/members/${member.id}`}
+                >
+                  <div className="grid gap-1 sm:grid-cols-[1fr_auto] sm:items-center">
+                    <span className="flex flex-wrap items-center gap-2 font-semibold text-text-primary">
+                      <span>{member.name}</span>
+                      {member.role === "admin" && (
+                        <span className="rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+                          관리자
+                        </span>
+                      )}
+                      {chip && (
+                        <span
+                          className="rounded-md border px-2 py-0.5 text-xs font-semibold"
+                          style={{
+                            backgroundColor: chipStyle.bg,
+                            borderColor: chipStyle.border,
+                            color: chipStyle.text,
+                          }}
+                        >
+                          {chip.label}
+                        </span>
+                      )}
                     </span>
-                  )}
-                </span>
-                <span className="text-sm font-medium text-text-secondary">
-                  {memberNumberText(member)}
-                </span>
-              </Link>
-            ))}
+                    <span className="flex flex-wrap items-center gap-x-2 text-sm font-medium text-text-secondary">
+                      <span>{memberNumberText(member)}</span>
+                      {member.memo && (
+                        <span className="truncate text-xs text-text-tertiary">
+                          {member.memo.split('\n')[0]}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>

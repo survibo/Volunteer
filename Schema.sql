@@ -120,6 +120,8 @@ create table if not exists public.users (
   volunteer_experience text,
   education_experience text,
   avatar_path          text,
+  user_chip            text,
+  memo                 text,
   approved_at          timestamptz,
   approved_by          uuid              references public.users(id) on delete set null,
   created_at           timestamptz       not null default now(),
@@ -1033,6 +1035,58 @@ begin
 end;
 $$;
 
+drop function if exists public.set_user_chip(uuid, text, text);
+create function public.set_user_chip(target_user_id uuid, color text, label text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  chip_json text;
+begin
+  if not private.is_admin() then
+    raise exception 'admin permission required';
+  end if;
+
+  chip_json := case
+    when color is not null and color != '' and label is not null and label != ''
+    then json_build_object('color', color, 'label', label)::text
+    else null
+  end;
+
+  update public.users
+  set user_chip = chip_json
+  where id = target_user_id;
+
+  if not found then
+    raise exception 'target user not found';
+  end if;
+end;
+$$;
+
+drop function if exists public.set_user_memo(uuid, text);
+create function public.set_user_memo(target_user_id uuid, memo_text text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not private.is_admin() then
+    raise exception 'admin permission required';
+  end if;
+
+  update public.users
+  set memo = nullif(memo_text, '')
+  where id = target_user_id;
+
+  if not found then
+    raise exception 'target user not found';
+  end if;
+end;
+$$;
+
 revoke all on function public.cancel_registration() from public;
 revoke all on function public.approve_member(uuid, text) from public;
 revoke all on function public.grant_admin(uuid, text) from public;
@@ -1043,6 +1097,8 @@ revoke all on function public.withdraw_current_user() from public;
 revoke all on function public.cancel_own_education_application(uuid) from public;
 revoke all on function public.decide_volunteer_application(uuid, public.application_status, text) from public;
 revoke all on function public.decide_education_application(uuid, public.application_status, text) from public;
+revoke all on function public.set_user_chip(uuid, text, text) from public;
+revoke all on function public.set_user_memo(uuid, text) from public;
 
 grant execute on function public.cancel_registration() to authenticated;
 grant execute on function public.approve_member(uuid, text) to authenticated;
@@ -1054,6 +1110,8 @@ grant execute on function public.withdraw_current_user() to authenticated;
 grant execute on function public.cancel_own_education_application(uuid) to authenticated;
 grant execute on function public.decide_volunteer_application(uuid, public.application_status, text) to authenticated;
 grant execute on function public.decide_education_application(uuid, public.application_status, text) to authenticated;
+grant execute on function public.set_user_chip(uuid, text, text) to authenticated;
+grant execute on function public.set_user_memo(uuid, text) to authenticated;
 
 
 -- =============================================================================

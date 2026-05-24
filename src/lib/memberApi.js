@@ -6,7 +6,7 @@ function throwIfError(error) {
   }
 }
 
-const memberSelect = 'id, role, member_number, name, phone, email, address, address_detail, workplace_or_school, license_number, birthday, volunteer_experience, education_experience, avatar_path, approved_at, created_at'
+const memberSelect = 'id, role, member_number, name, phone, email, address, address_detail, workplace_or_school, license_number, birthday, volunteer_experience, education_experience, avatar_path, user_chip, memo, approved_at, created_at'
 
 export async function listMembers() {
   const { data, error } = await supabase
@@ -61,4 +61,21 @@ export async function grantAdmin(id, memberNumber) {
   throwIfError(error)
 
   return getMember(id)
+}
+
+export async function setUserChip(id, color, label) {
+  const { error } = await supabase.rpc('set_user_chip', {
+    target_user_id: id,
+    color,
+    label,
+  })
+  throwIfError(error)
+}
+
+export async function setUserMemo(id, memoText) {
+  const { error } = await supabase.rpc('set_user_memo', {
+    target_user_id: id,
+    memo_text: memoText,
+  })
+  throwIfError(error)
 }

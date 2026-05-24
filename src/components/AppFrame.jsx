@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router";
+import { MessageCircle } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 
 const navItems = [
@@ -36,7 +37,11 @@ export default function AppFrame({ profile, children }) {
             </Link>
           ))}
         </nav>
-        <div className="justify-self-end">
+
+        <div className="flex items-center gap-3 justify-self-end">
+          <a href="http://pf.kakao.com/_KxlUDxj" className="text-text-secondary hover:text-action-default" aria-label="문의">
+            <MessageCircle size={20} />
+          </a>
           <NotificationBell userId={profile?.id} />
         </div>
       </header>

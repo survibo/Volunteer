@@ -5,6 +5,8 @@ import {
   getMember,
   grantAdmin,
   listMembers,
+  setUserChip,
+  setUserMemo,
 } from "../lib/memberApi";
 
 export function useMembers() {
@@ -49,6 +51,28 @@ export function useGrantAdmin() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, memberNumber }) => grantAdmin(id, memberNumber),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["members"] });
+      queryClient.invalidateQueries({ queryKey: ["member", variables.id] });
+    },
+  });
+}
+
+export function useSetUserChip() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, color, label }) => setUserChip(id, color, label),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["members"] });
+      queryClient.invalidateQueries({ queryKey: ["member", variables.id] });
+    },
+  });
+}
+
+export function useSetUserMemo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, memoText }) => setUserMemo(id, memoText),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["members"] });
       queryClient.invalidateQueries({ queryKey: ["member", variables.id] });

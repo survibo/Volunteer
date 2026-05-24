@@ -1,9 +1,47 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router'
 import TopLoadingBar from '../../components/TopLoadingBar'
 import { downloadMemberCert } from '../../lib/pdfCert'
-import { useMember, useApproveMember, useCancelMemberApproval, useGrantAdmin } from '../../hooks/useMembers'
+import {
+  useMember,
+  useApproveMember,
+  useCancelMemberApproval,
+  useGrantAdmin,
+  useSetUserChip,
+  useSetUserMemo,
+} from '../../hooks/useMembers'
 import UserAvatar from '../../components/UserAvatar'
+
+const CHIP_COLORS = [
+  { name: '빨강', value: 'red', bg: '#EF4444' },
+  { name: '주황', value: 'orange', bg: '#F97316' },
+  { name: '노랑', value: 'yellow', bg: '#EAB308' },
+  { name: '초록', value: 'green', bg: '#22C55E' },
+  { name: '파랑', value: 'blue', bg: '#3B82F6' },
+  { name: '남색', value: 'indigo', bg: '#6366F1' },
+  { name: '보라', value: 'purple', bg: '#A855F7' },
+  { name: '분홍', value: 'pink', bg: '#EC4899' },
+  { name: '갈색', value: 'brown', bg: '#92400E' },
+  { name: '회색', value: 'gray', bg: '#6B7280' },
+]
+
+const CHIP_STYLES = {
+  red:    { bg: '#FEF2F2', border: '#FECACA', text: '#B91C1C' },
+  orange: { bg: '#FFF7ED', border: '#FED7AA', text: '#C2410C' },
+  yellow: { bg: '#FEFCE8', border: '#FEF08A', text: '#A16207' },
+  green:  { bg: '#F0FDF4', border: '#BBF7D0', text: '#15803D' },
+  blue:   { bg: '#EFF6FF', border: '#BFDBFE', text: '#1D4ED8' },
+  indigo: { bg: '#EEF2FF', border: '#C7D2FE', text: '#4338CA' },
+  purple: { bg: '#FAF5FF', border: '#E9D5FF', text: '#7E22CE' },
+  pink:   { bg: '#FDF2F8', border: '#FBCFE8', text: '#BE185D' },
+  brown:  { bg: '#FFF7ED', border: '#FED7AA', text: '#92400E' },
+  gray:   { bg: '#F9FAFB', border: '#E5E7EB', text: '#374151' },
+}
+
+function parseChip(value) {
+  if (!value) return null
+  try { return JSON.parse(value) } catch { return null }
+}
 
 function roleLabel(role) {
   if (role === 'admin') return '관리자'
@@ -63,8 +101,29 @@ export default function AdminMemberDetailPage() {
   const approveMutation = useApproveMember()
   const cancelMutation = useCancelMemberApproval()
   const grantMutation = useGrantAdmin()
+  const chipMutation = useSetUserChip()
+  const memoMutation = useSetUserMemo()
 
-  const processing = approveMutation.isPending || cancelMutation.isPending || grantMutation.isPending
+  const [memoOpen, setMemoOpen] = useState(false)
+  const [memoDraft, setMemoDraft] = useState('')
+  const [memoError, setMemoError] = useState('')
+  const [memoSaved, setMemoSaved] = useState(false)
+  const [chipColor, setChipColor] = useState('')
+  const [chipLabel, setChipLabel] = useState('')
+
+  useEffect(() => {
+    if (member && memoOpen) {
+      setMemoDraft(member.memo ?? '')
+    }
+  }, [member?.memo, memoOpen])
+
+  useEffect(() => {
+    const chip = parseChip(member?.user_chip)
+    setChipColor(chip?.color ?? '')
+    setChipLabel(chip?.label ?? '')
+  }, [member?.user_chip])
+
+  const processing = approveMutation.isPending || cancelMutation.isPending || grantMutation.isPending || chipMutation.isPending || memoMutation.isPending
 
   async function handleConfirmAction() {
     if (!confirmAction) return
@@ -251,6 +310,153 @@ export default function AdminMemberDetailPage() {
           <dd className="m-0">{formatDate(member.approved_at)}</dd>
         </div>
       </dl>
+
+      <div className="rounded-xl border border-border-default bg-surface-base p-5 sm:p-6">
+        <p className="mb-3 text-sm font-semibold text-text-secondary">사용자 칩</p>
+
+        {(chipColor && chipLabel) && (
+          <div className="mb-3">
+            <span
+              className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold"
+              style={{
+                backgroundColor: CHIP_STYLES[chipColor]?.bg ?? '#F9FAFB',
+                borderColor: CHIP_STYLES[chipColor]?.border ?? '#E5E7EB',
+                color: CHIP_STYLES[chipColor]?.text ?? '#374151',
+              }}
+            >
+              {chipLabel}
+            </span>
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          {CHIP_COLORS.map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              disabled={processing}
+              className={`h-8 w-8 cursor-pointer rounded-full border-2 transition-all hover:scale-110 disabled:cursor-progress disabled:opacity-65 ${chipColor === c.value ? 'border-text-primary' : 'border-border-default'}`}
+              style={{ backgroundColor: c.bg }}
+              title={c.name}
+              onClick={() => setChipColor(c.value)}
+            />
+          ))}
+        </div>
+
+        {chipColor && (
+          <div className="mt-3 grid gap-2.5">
+            <input
+              className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-sm text-text-primary placeholder:text-text-tertiary"
+              placeholder="칩 텍스트 (최대 10자)"
+              maxLength={10}
+              value={chipLabel}
+              onChange={(e) => setChipLabel(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={processing || !chipLabel}
+                className="inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-lg bg-action-default px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
+                onClick={() =>
+                  chipMutation.mutate({ id, color: chipColor, label: chipLabel })
+                }
+              >
+                저장
+              </button>
+              {parseChip(member?.user_chip) && (
+                <button
+                  type="button"
+                  disabled={processing}
+                  className="inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-lg border border-border-default bg-white px-4 text-sm font-medium text-text-primary hover:bg-surface-subtle disabled:cursor-progress disabled:opacity-65"
+                  onClick={() => chipMutation.mutate({ id, color: '', label: '' })}
+                >
+                  없음
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-border-default bg-surface-base p-5 sm:p-6">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-text-secondary">메모</p>
+          <button
+            type="button"
+            className="inline-flex min-h-[32px] cursor-pointer items-center justify-center rounded-lg border border-border-default bg-white px-3 text-xs font-medium text-text-primary hover:bg-surface-subtle"
+            onClick={() => setMemoOpen(!memoOpen)}
+          >
+            {memoOpen ? '닫기' : member.memo ? '수정' : '작성'}
+          </button>
+        </div>
+        {memoOpen && (
+          <div className="mt-3 grid gap-2.5">
+            <textarea
+              className="min-h-24 w-full resize-y rounded-lg border border-border-default bg-white p-3 text-sm text-text-primary placeholder:text-text-tertiary"
+              placeholder="메모를 입력하세요"
+              value={memoDraft}
+              onChange={(e) => setMemoDraft(e.target.value)}
+              autoFocus
+            />
+            {memoError && (
+              <p className="text-sm text-status-error-text">{memoError}</p>
+            )}
+            {memoSaved && (
+              <p className="text-sm text-status-success-text">저장됨</p>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={processing}
+                className="inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-lg bg-action-default px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
+                onClick={() => {
+                  setMemoError('')
+                  setMemoSaved(false)
+                  memoMutation.mutate(
+                    { id, memoText: memoDraft },
+                    {
+                      onSuccess: () => {
+                        setMemoSaved(true)
+                        setTimeout(() => setMemoSaved(false), 2000)
+                      },
+                      onError: (e) => setMemoError(e.message),
+                    },
+                  )
+                }}
+              >
+                저장
+              </button>
+              <button
+                type="button"
+                disabled={processing}
+                className="inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-lg border border-border-default bg-white px-4 text-sm font-medium text-text-primary hover:bg-surface-subtle"
+                onClick={() => {
+                  setMemoDraft(member.memo ?? '')
+                  setMemoOpen(false)
+                  setMemoError('')
+                }}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        )}
+        {!memoOpen && member.memo && (
+          <p className="mt-2 whitespace-pre-line text-sm text-text-primary">
+            {member.memo.split('\n')[0]}
+            {member.memo.includes('\n') && (
+              <button
+                type="button"
+                className="inline cursor-pointer text-text-tertiary hover:underline"
+                onClick={() => setMemoOpen(true)}
+              >
+                {' '}... 더보기
+              </button>
+            )}
+          </p>
+        )}
+      </div>
+
       {member.role !== 'admin' && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-5 sm:p-6">
           <p className="mb-3 text-sm font-semibold text-red-700">관리자 권한</p>
