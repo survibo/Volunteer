@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { createActivity, getActivityKind, updateActivity } from '../lib/activityApi'
+import { getActivityKind } from '../lib/activityApi'
 import { getImageUrl, parseImagePaths, uploadActivityImages } from '../lib/storageApi'
+import { useCreateActivity, useUpdateActivity } from '../hooks/useActivities'
 import ImageWithFallback from './ImageWithFallback'
 
 function toDatetimeLocal(iso) {
@@ -59,6 +60,8 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
   const navigate = useNavigate()
   const kind = getActivityKind(table)
   const isEdit = !!initialData
+  const createMutation = useCreateActivity(kind)
+  const updateMutation = useUpdateActivity(kind)
   const [form, setForm] = useState(() => buildInitial(initialData))
   const [images, setImages] = useState(() => {
     return parseImagePaths(initialData?.image_path).map((path) => ({ kind: 'existing', path }))
@@ -176,9 +179,9 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
 
     try {
       if (isEdit) {
-        await updateActivity(kind, initialData.id, payload)
+        await updateMutation.mutateAsync({ id: initialData.id, payload })
       } else {
-        await createActivity(kind, { ...payload, created_by: profile.id })
+        await createMutation.mutateAsync({ ...payload, created_by: profile.id })
       }
     } catch (caughtError) {
       error = caughtError

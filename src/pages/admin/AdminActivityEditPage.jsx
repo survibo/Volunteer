@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Trash2 } from 'lucide-react'
-import { deleteActivity, getActivityKind } from '../../lib/activityApi'
-import { useActivity } from '../../hooks/useActivities'
+import { getActivityKind } from '../../lib/activityApi'
+import { useActivity, useDeleteActivity } from '../../hooks/useActivities'
 import ActivityForm from '../../components/ActivityForm'
 import TopLoadingBar from '../../components/TopLoadingBar'
 
@@ -15,12 +15,13 @@ export default function AdminActivityEditPage({ table, redirectTo, sectionLabel,
   const [deleting, setDeleting] = useState(false)
 
   const { data: initialData, isLoading, isError, error: queryError } = useActivity(kind, id)
+  const deleteMutation = useDeleteActivity(kind)
 
   async function handleDelete() {
     setDeleting(true)
 
     try {
-      await deleteActivity(kind, id)
+      await deleteMutation.mutateAsync(id)
       navigate(redirectTo, { replace: true })
     } catch (error) {
       setErrorMessage(error.message)

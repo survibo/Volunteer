@@ -2,7 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   applyToActivity,
   cancelOwnApplication,
+  createActivity,
   decideApplications,
+  deleteActivity,
   getActivity,
   getActivityMaybe,
   getMyApplication,
@@ -10,6 +12,7 @@ import {
   listApplicantCounts,
   listApplications,
   listMyApplications,
+  updateActivity,
 } from "../lib/activityApi";
 
 export function useActivities(kind, isAdmin = false) {
@@ -78,6 +81,8 @@ export function useApplyActivity(kind) {
         queryKey: ["my-applications", variables.userId],
       });
       queryClient.invalidateQueries({ queryKey: ["activities", kind] });
+      queryClient.invalidateQueries({ queryKey: ["activity", kind, variables.activityId] });
+      queryClient.invalidateQueries({ queryKey: ["applications", kind, variables.activityId] });
     },
   });
 }
@@ -90,6 +95,8 @@ export function useCancelApplication(kind) {
       queryClient.invalidateQueries({ queryKey: ["application", kind] });
       queryClient.invalidateQueries({ queryKey: ["my-applications"] });
       queryClient.invalidateQueries({ queryKey: ["activities", kind] });
+      queryClient.invalidateQueries({ queryKey: ["applications", kind] });
+      queryClient.invalidateQueries({ queryKey: ["activity", kind] });
     },
   });
 }
@@ -102,6 +109,40 @@ export function useDecideApplications(kind) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["applications", kind] });
       queryClient.invalidateQueries({ queryKey: ["activity", kind] });
+      queryClient.invalidateQueries({ queryKey: ["application", kind] });
+      queryClient.invalidateQueries({ queryKey: ["my-applications"] });
+      queryClient.invalidateQueries({ queryKey: ["activities", kind] });
+    },
+  });
+}
+
+export function useCreateActivity(kind) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload) => createActivity(kind, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["activities", kind] });
+    },
+  });
+}
+
+export function useUpdateActivity(kind) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }) => updateActivity(kind, id, payload),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["activities", kind] });
+      queryClient.invalidateQueries({ queryKey: ["activity", kind, variables.id] });
+    },
+  });
+}
+
+export function useDeleteActivity(kind) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => deleteActivity(kind, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["activities", kind] });
     },
   });
 }
