@@ -1,41 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router'
-import { Bell, Check } from 'lucide-react'
+import { Bell, BellOff, BellRing, Check } from 'lucide-react'
 import { useNotifications, useUnreadCount, useMarkAsRead, useMarkAllAsRead } from '../hooks/useNotifications'
-
-function formatRelativeTime(dateString) {
-  const now = new Date()
-  const date = new Date(dateString)
-  const diffMs = now - date
-  const diffMin = Math.floor(diffMs / 60000)
-  const diffHour = Math.floor(diffMs / 3600000)
-  const diffDay = Math.floor(diffMs / 86400000)
-  if (diffMin < 1) return '방금'
-  if (diffMin < 60) return `${diffMin}분 전`
-  if (diffHour < 24) return `${diffHour}시간 전`
-  if (diffDay < 7) return `${diffDay}일 전`
-  return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
-}
-
-function getNotificationLink(notification) {
-  const data = notification.data ?? {}
-  switch (notification.type) {
-    case 'application_status':
-    case 'application_received':
-      if (data.activity_type === 'education') return '/mylist?tab=education'
-      return '/mylist?tab=volunteer'
-    case 'activity_reminder':
-    case 'activity_cancelled':
-    case 'activity_updated':
-      if (data.activity_type === 'education') return '/education'
-      return '/volunteer'
-    case 'deadline_approaching':
-      if (data.activity_type === 'education') return '/education'
-      return '/volunteer'
-    default:
-      return null
-  }
-}
+import { usePushNotifications } from '../hooks/usePushNotifications'
+import { getNotificationLink } from '../lib/notificationLinks'
 
 export default function NotificationBell({ userId }) {
   const [open, setOpen] = useState(false)
@@ -45,6 +13,7 @@ export default function NotificationBell({ userId }) {
   const { data: unreadCount = 0 } = useUnreadCount(userId)
   const markAsRead = useMarkAsRead(userId)
   const markAllAsRead = useMarkAllAsRead(userId)
+  const pushNotifications = usePushNotifications(userId)
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -96,6 +65,7 @@ export default function NotificationBell({ userId }) {
               </button>
             )}
           </div>
+          <PushNotificationControl pushNotifications={pushNotifications} />
 
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -140,4 +110,68 @@ export default function NotificationBell({ userId }) {
       )}
     </div>
   )
+}
+
+function PushNotificationControl({ pushNotifications }) {
+  const status = pushNotifications.data
+  const enabled = !!status?.enabled
+  const permission = status?.permission
+  const supportError = status?.supportError
+  const busy = pushNotifications.enable.isPending || pushNotifications.disable.isPending
+  const denied = permission === 'denied'
+
+  if (supportError) {
+    return null
+  }
+
+  return (
+    <div className="border-b border-border-default bg-surface-subtle px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-text-primary">
+            {enabled ? '푸시 알림 켜짐' : '푸시 알림 꺼짐'}
+          </p>
+          <p className="mt-0.5 text-[11px] leading-snug text-text-tertiary">
+            {denied
+              ? '브라우저 설정에서 알림 권한을 허용해 주세요.'
+              : supportError ?? '새 알림을 브라우저 알림으로 받을 수 있습니다.'}
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={busy || denied || !!supportError}
+          onClick={() => {
+            if (enabled) {
+              pushNotifications.disable.mutate()
+            } else {
+              pushNotifications.enable.mutate()
+            }
+          }}
+          className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border-default bg-white px-3 text-xs font-semibold text-text-primary hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {enabled ? <BellOff size={14} /> : <BellRing size={14} />}
+          {busy ? '처리 중' : enabled ? '끄기' : '켜기'}
+        </button>
+      </div>
+      {(pushNotifications.enable.error || pushNotifications.disable.error) && (
+        <p className="mt-2 text-[11px] text-status-error-text">
+          {(pushNotifications.enable.error ?? pushNotifications.disable.error).message}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function formatRelativeTime(dateString) {
+  const now = new Date()
+  const date = new Date(dateString)
+  const diffMs = now - date
+  const diffMin = Math.floor(diffMs / 60000)
+  const diffHour = Math.floor(diffMs / 3600000)
+  const diffDay = Math.floor(diffMs / 86400000)
+  if (diffMin < 1) return '방금'
+  if (diffMin < 60) return `${diffMin}분 전`
+  if (diffHour < 24) return `${diffHour}시간 전`
+  if (diffDay < 7) return `${diffDay}일 전`
+  return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
 }

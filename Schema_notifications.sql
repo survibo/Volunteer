@@ -536,15 +536,47 @@ $$;
 create table if not exists public.device_tokens (
   id                uuid                primary key default gen_random_uuid(),
   user_id           uuid                not null references public.users(id) on delete cascade,
-  token             text                not null,
+  endpoint          text                not null,
+  token             jsonb               not null,
   platform          text                not null check (platform in ('web', 'ios', 'android')),
   created_at        timestamptz         not null default now(),
   updated_at        timestamptz         not null default now(),
-  unique (user_id, token)
+  unique (user_id, endpoint)
 );
 
 create index if not exists idx_device_tokens_user
   on public.device_tokens(user_id);
+
+alter table public.device_tokens
+  add column if not exists endpoint text;
+
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'device_tokens'
+      and column_name = 'token'
+      and data_type = 'text'
+  ) then
+    alter table public.device_tokens
+      alter column token type jsonb using
+        case
+          when token is null or btrim(token) = '' then '{}'::jsonb
+          when token ~ '^\s*[\{\[]' then token::jsonb
+          else jsonb_build_object('value', token)
+        end;
+  end if;
+end;
+$$;
+
+update public.device_tokens
+set endpoint = coalesce(endpoint, token->>'endpoint')
+where endpoint is null;
+
+create unique index if not exists idx_device_tokens_user_endpoint
+  on public.device_tokens(user_id, endpoint);
 
 alter table public.device_tokens enable row level security;
 
@@ -566,6 +598,81 @@ create policy "device_tokens_delete_own"
   using (auth.uid() = user_id);
 
 grant select, insert, update, delete on table public.device_tokens to authenticated;
+
+
+-- =============================================================================
+-- Push Webhook: notifications INSERT → Supabase Edge Function(send-push)
+-- =============================================================================
+--
+-- 실행 전 아래 3개 값을 실제 값으로 바꿔 한 번만 실행:
+--   insert into public.push_config(key, value) values
+--     ('send_push_url', 'https://lxjtnvspnrwkuldjidla.supabase.co/functions/v1/send-push'),
+--     ('vapid_public_key', 'BHxrlHfcNw-vpTsmRy1HYHdMrRfXD91_2ui2x6Nlt1xJAaMs5B4h8IPqpOe_tspZ1kp-gLI3mw96qr2kQ8RvmwQ'),
+--     ('vapid_private_key', '')
+--   on conflict (key) do update set value = excluded.value, updated_at = now();
+--
+-- send-push는 DB webhook에서 호출되므로 JWT 검증 없이 배포:
+--   supabase functions deploy send-push --no-verify-jwt
+--
+
+create table if not exists public.push_config (
+  key        text        primary key,
+  value      text        not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.push_config enable row level security;
+
+drop policy if exists "push_config_select_public_key" on public.push_config;
+create policy "push_config_select_public_key"
+  on public.push_config for select
+  using (key = 'vapid_public_key');
+
+grant select on table public.push_config to anon, authenticated;
+
+create extension if not exists pg_net with schema extensions;
+
+create or replace function public.invoke_send_push()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_url text;
+begin
+  select value into v_url
+  from public.push_config
+  where key = 'send_push_url';
+
+  if nullif(v_url, '') is null then
+    return new;
+  end if;
+
+  perform net.http_post(
+    url := v_url,
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json'
+    ),
+    body := jsonb_build_object(
+      'type', tg_op,
+      'table', tg_table_name,
+      'schema', tg_table_schema,
+      'record', to_jsonb(new),
+      'old_record', null
+    ),
+    timeout_milliseconds := 1000
+  );
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_notifications_send_push on public.notifications;
+create trigger trg_notifications_send_push
+  after insert on public.notifications
+  for each row
+  execute function public.invoke_send_push();
 
 
 -- =============================================================================

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
 import { signOut, withdrawCurrentUser } from "../../lib/auth";
+import { deleteCurrentPushSubscription } from "../../lib/pushNotifications";
 import { downloadMemberCert } from "../../lib/pdfCert";
 import UserAvatar from "../../components/UserAvatar";
 
@@ -24,12 +25,22 @@ export default function MyPage({ profile }) {
 
   async function handleSignOut() {
     setSigningOut(true);
+    try {
+      await deleteCurrentPushSubscription(profile.id);
+    } catch (error) {
+      console.warn("Push subscription cleanup failed", error);
+    }
     await signOut();
     navigate("/", { replace: true });
   }
 
   async function handleWithdraw() {
     setWithdrawing(true);
+    try {
+      await deleteCurrentPushSubscription(profile.id);
+    } catch (error) {
+      console.warn("Push subscription cleanup failed", error);
+    }
     await withdrawCurrentUser();
     await signOut();
     navigate("/", { replace: true });
