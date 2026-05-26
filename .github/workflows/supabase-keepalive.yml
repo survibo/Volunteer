@@ -14,9 +14,9 @@ jobs:
     steps:
       - name: Supabase DB에 Keep-Alive 쿼리 전송
         run: |
-          curl -X POST '${{ secrets.SUPABASE_URL }}/rest/v1/rpc/ping' \
-            -H 'apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}' \
-            -H 'Authorization: Bearer ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}' \
+          curl -X POST             '${{ secrets.VITE_SUPABASE_URL }}/rest/v1/rpc/ping' \
+            -H 'apikey: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}' \
+            -H 'Authorization: Bearer ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}' \
             -H 'Content-Type: application/json' \
             --fail \
             --silent \
@@ -26,8 +26,8 @@ jobs:
       - name: 단순 헬스체크 (RPC가 없을 경우 대비)
         run: |
           STATUS=$(curl -o /dev/null -s -w "%{http_code}" \
-            '${{ secrets.SUPABASE_URL }}/rest/v1/' \
-            -H 'apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}')
+            '${{ secrets.VITE_SUPABASE_URL }}/rest/v1/' \
+            -H 'apikey: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}')
           echo "Supabase 응답 상태 코드: $STATUS"
           if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
             echo "✅ Keep-alive 성공"
