@@ -20,7 +20,13 @@ jobs:
           test -n "$SUPABASE_URL"
           test -n "$SUPABASE_PUBLISHABLE_KEY"
 
-          curl --fail --silent --show-error \
-            --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
-            --header "Authorization: Bearer $SUPABASE_PUBLISHABLE_KEY" \
-            "$SUPABASE_URL/rest/v1/"
+          if [[ "$SUPABASE_PUBLISHABLE_KEY" == sb_publishable_* ]]; then
+            curl --fail --silent --show-error \
+              --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+              "$SUPABASE_URL/rest/v1/"
+          else
+            curl --fail --silent --show-error \
+              --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+              --header "Authorization: Bearer $SUPABASE_PUBLISHABLE_KEY" \
+              "$SUPABASE_URL/rest/v1/"
+          fi
