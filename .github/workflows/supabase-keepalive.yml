@@ -12,12 +12,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Ping Supabase Auth health endpoint
+      - name: Ping Supabase Auth & REST API
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          test -n "$SUPABASE_URL"
-
+          set -e
           BASE_URL="${SUPABASE_URL%/}"
 
+          echo "--- Auth health ---"
           curl --fail --silent --show-error "$BASE_URL/auth/v1/health"
+
+          echo ""
+          echo "--- REST API (push_config) ---"
+          curl --fail --silent --show-error --output /dev/null -w "HTTP %{http_code}\n" \
+            "$BASE_URL/rest/v1/push_config?select=key&limit=1" \
+            -H "apikey: $SUPABASE_KEY"
