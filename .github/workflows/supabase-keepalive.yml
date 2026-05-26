@@ -12,21 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Ping Supabase REST API
+      - name: Ping Supabase Auth health endpoint
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.SUPABASE_ANON_KEY }}
         run: |
           test -n "$SUPABASE_URL"
-          test -n "$SUPABASE_PUBLISHABLE_KEY"
 
-          if [[ "$SUPABASE_PUBLISHABLE_KEY" == sb_publishable_* ]]; then
-            curl --fail --silent --show-error \
-              --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
-              "$SUPABASE_URL/rest/v1/"
-          else
-            curl --fail --silent --show-error \
-              --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
-              --header "Authorization: Bearer $SUPABASE_PUBLISHABLE_KEY" \
-              "$SUPABASE_URL/rest/v1/"
-          fi
+          BASE_URL="${SUPABASE_URL%/}"
+
+          curl --fail --silent --show-error "$BASE_URL/auth/v1/health"
