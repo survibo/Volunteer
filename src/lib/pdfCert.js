@@ -1,11 +1,10 @@
-let pdfjsLib, PDFDocument, pdfLibLoaded = false;
+let pdfjsLib,
+  PDFDocument,
+  pdfLibLoaded = false;
 
 async function ensurePdfLibs() {
   if (pdfLibLoaded) return;
-  const [a, b] = await Promise.all([
-    import("pdfjs-dist"),
-    import("pdf-lib"),
-  ]);
+  const [a, b] = await Promise.all([import("pdfjs-dist"), import("pdf-lib")]);
   pdfjsLib = a;
   PDFDocument = b.PDFDocument;
   pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
@@ -47,7 +46,7 @@ export async function downloadMemberCert(member, returnBlob) {
   await ensurePdfLibs();
   await loadGungsuhFont();
 
-  const pdfUrl = "/k-spara.pdf";
+  const pdfUrl = "/blank-k-spara.pdf";
   const pdfBytes = await fetch(pdfUrl).then((r) => r.arrayBuffer());
 
   const pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
@@ -66,20 +65,7 @@ export async function downloadMemberCert(member, returnBlob) {
   ctx.font = `${fontSize}px GungsuhEmbed, 궁서, Gungsuh, serif`;
   ctx.textBaseline = "middle";
 
-  function fillText(x, y, text, maxWidth) {
-    const rectW = ((maxWidth || 180) * scale) / 1.4;
-    const rectH = fontSize + 6;
-    ctx.fillStyle = "white";
-    ctx.fillRect(x * scale, y * scale - rectH / 2, rectW, rectH);
-    ctx.fillStyle = "black";
-    ctx.fillText(text, x * scale, y * scale);
-  }
-
-  function fillText2(x, y, text, maxWidth) {
-    const rectW = ((maxWidth || 180) * scale) / 1.8;
-    const rectH = fontSize + 6;
-    ctx.fillStyle = "white";
-    ctx.fillRect(x * scale, y * scale - rectH / 2, rectW, rectH);
+  function fillText(x, y, text) {
     ctx.fillStyle = "black";
     ctx.fillText(text, x * scale, y * scale);
   }
@@ -88,20 +74,28 @@ export async function downloadMemberCert(member, returnBlob) {
   fillText(408, 228, `제 ${memberNumber} 호`, 180);
 
   const chars = [...member.name];
-  const charGap = 50;
+  const role = "정회원";
   const nameStartX = 408;
   ctx.font = `${Math.round(20 * scale)}px GungsuhEmbed, 궁서, Gungsuh, serif`;
+  const charGap =
+    chars.length === 2 ? 108 : chars.length >= 4 ? 144 / chars.length : 54;
   chars.forEach((ch, i) => {
-    fillText(nameStartX + i * charGap, 285, ch, charGap);
+    fillText(nameStartX + i * charGap, 286, ch, charGap);
   });
-  ctx.font = `${Math.round(11 * scale)}px GungsuhEmbed, 궁서, Gungsuh, serif`;
-  fillText2(408, 314, member.email, 280);
+
+  [...role].forEach((ch, i) => {
+    fillText(nameStartX + i * 54, 256, ch, 54);
+  });
+
+  ctx.font = `${Math.round(10 * scale)}px GungsuhEmbed, 궁서, Gungsuh, serif`;
+  fillText(nameStartX, 314, member.email, 280);
+
   ctx.font = `${Math.round(18 * scale)}px GungsuhEmbed, 궁서, Gungsuh, serif`;
 
-  fillText(408, 341, formatDateCompact(member.created_at), 220);
+  fillText(nameStartX + 1, 343, formatDateCompact(member.created_at), 220);
   ctx.font = `${Math.round(25 * scale)}px GungsuhEmbed, 궁서, Gungsuh, serif`;
 
-  fillText(217, 581, formatDateFull(member.approved_at), 250);
+  fillText(210, 590, formatDateFull(member.approved_at), 250);
 
   const imgData = canvas.toDataURL("image/png");
   const imgBytes = dataUrlToBytes(imgData);
