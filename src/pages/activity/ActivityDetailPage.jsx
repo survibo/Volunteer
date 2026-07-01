@@ -109,7 +109,7 @@ export default function ActivityDetailPage({ table, profile }) {
   }
 
   return (
-    <section className="grid gap-6">
+    <section className="grid gap-6 md:mx-auto md:w-full md:max-w-[800px]">
       <div>
         <Link
           className="mb-2 inline-block text-xs font-semibold uppercase tracking-wider text-action-default hover:underline"
@@ -166,16 +166,16 @@ export default function ActivityDetailPage({ table, profile }) {
         </a>
       )}
       {imageUrls.length > 0 && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-px">
           {imageUrls.map((url, i) => (
             <button
               key={url}
-              className="w-full cursor-pointer rounded-xl p-0 text-left"
+              className="w-full cursor-pointer p-0 text-left"
               type="button"
               onClick={() => setViewerIndex(i)}
             >
               <ImageWithFallback
-                className="w-full rounded-xl border border-border-default"
+                className="w-full border border-border-default"
                 src={url}
                 alt={`${activity.title} ${i + 1}`}
               />

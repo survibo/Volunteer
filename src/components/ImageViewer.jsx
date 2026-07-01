@@ -4,13 +4,32 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 export default function ImageViewer({ images, initialIndex, onClose }) {
   const [index, setIndex] = useState(initialIndex);
   const [showControls, setShowControls] = useState(true);
-  const touchStartX = useRef(null);
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isJumpResetting, setIsJumpResetting] = useState(false);
+  const [usesDesktopPointer, setUsesDesktopPointer] = useState(false);
+  const pointerStartX = useRef(null);
+  const activePointerId = useRef(null);
+  const pendingIndex = useRef(null);
+  const resetAnimationFrame = useRef(null);
   const closedRef = useRef(false);
   const onCloseRef = useRef(onClose)
   const controlsTimer = useRef(null)
   useEffect(() => {
     onCloseRef.current = onClose
   })
+
+  useEffect(() => {
+    const media = window.matchMedia("(hover: hover) and (pointer: fine)")
+    const updatePointerMode = () => setUsesDesktopPointer(media.matches)
+
+    updatePointerMode()
+    media.addEventListener("change", updatePointerMode)
+
+    return () => {
+      media.removeEventListener("change", updatePointerMode)
+    }
+  }, [])
 
   function showControlsTemporarily() {
     setShowControls(true)
@@ -60,46 +79,127 @@ export default function ImageViewer({ images, initialIndex, onClose }) {
       window.removeEventListener("popstate", handlePopState)
       window.removeEventListener("keydown", handleKeyDown)
       clearTimeout(controlsTimer.current)
+      cancelAnimationFrame(resetAnimationFrame.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function handleTouchStart(e) {
-    touchStartX.current = e.touches[0].clientX;
+  function handlePointerDown(e) {
+    if (usesDesktopPointer || !hasMultiple) return
+    if (e.target.closest("button")) return
+
+    pointerStartX.current = e.clientX
+    activePointerId.current = e.pointerId
+    setIsDragging(true)
+    setDragX(0)
     showControlsTemporarily()
+    e.currentTarget.setPointerCapture(e.pointerId)
   }
 
-  function handleTouchEnd(e) {
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) goNext();
-      else goPrev();
+  function handlePointerMove(e) {
+    if (!isDragging || activePointerId.current !== e.pointerId) return
+
+    const nextDragX = e.clientX - pointerStartX.current
+    const isPastStart = index === 0 && nextDragX > 0
+    const isPastEnd = index === images.length - 1 && nextDragX < 0
+    setDragX(isPastStart || isPastEnd ? nextDragX * 0.28 : nextDragX)
+  }
+
+  function handlePointerEnd(e) {
+    if (!isDragging || activePointerId.current !== e.pointerId) return
+
+    const diff = e.clientX - pointerStartX.current
+    const targetIndex = diff < 0 ? index + 1 : index - 1
+    const canChangeImage = targetIndex >= 0 && targetIndex < images.length
+    const shouldChangeImage = canChangeImage && Math.abs(diff) > 70
+
+    if (shouldChangeImage) {
+      const slideWidth = e.currentTarget.clientWidth || window.innerWidth
+      pendingIndex.current = targetIndex
+      setDragX(diff < 0 ? -slideWidth : slideWidth)
+      showControlsTemporarily()
+    } else {
+      setDragX(0)
     }
+
+    pointerStartX.current = null
+    activePointerId.current = null
+    setIsDragging(false)
+  }
+
+  function handlePointerCancel() {
+    pointerStartX.current = null
+    activePointerId.current = null
+    pendingIndex.current = null
+    setIsDragging(false)
+    setDragX(0)
+  }
+
+  function handleTrackTransitionEnd(e) {
+    if (e.target !== e.currentTarget || pendingIndex.current === null) return
+
+    const nextIndex = pendingIndex.current
+    pendingIndex.current = null
+    setIsJumpResetting(true)
+    setIndex(nextIndex)
+    setDragX(0)
+
+    resetAnimationFrame.current = requestAnimationFrame(() => {
+      resetAnimationFrame.current = requestAnimationFrame(() => {
+        setIsJumpResetting(false)
+      })
+    })
   }
 
   const hasMultiple = images.length > 1;
+  const showArrowButtons = hasMultiple && usesDesktopPointer;
+  const adjacentImages = [
+    { src: images[index - 1], position: "prev" },
+    { src: images[index], position: "current" },
+    { src: images[index + 1], position: "next" },
+  ];
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95"
       onClick={handleClose}
       onMouseMove={showControlsTemporarily}
     >
       <div
-        className="relative flex h-full w-full items-center justify-center"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
+        className="relative flex h-full w-full touch-pan-y items-center justify-center"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerCancel}
         onClick={(e) => e.stopPropagation()}
       >
-        <img
-          className="max-h-full max-w-full object-contain"
-          src={images[index]}
-          alt={`${index + 1}/${images.length}`}
-          draggable={false}
-        />
+        <div
+          className={`flex h-full w-full ${usesDesktopPointer ? '' : 'cursor-grab touch-none'} ${isDragging || isJumpResetting ? '' : 'transition-transform duration-200 ease-out'}`}
+          onTransitionEnd={handleTrackTransitionEnd}
+          style={{ transform: `translateX(calc(-100% + ${dragX}px))` }}
+        >
+          {adjacentImages.map(({ src, position }) => (
+            <div
+              className="flex h-full w-full flex-none items-center justify-center"
+              key={position}
+            >
+              {src && (
+                <img
+                  className="max-h-full max-w-full object-contain"
+                  src={src}
+                  alt={position === "current" ? `${index + 1}/${images.length}` : ""}
+                  aria-hidden={position === "current" ? undefined : true}
+                  draggable={false}
+                  loading="eager"
+                  decoding="async"
+                />
+              )}
+            </div>
+          ))}
+        </div>
 
         <div className={`transition-opacity duration-700 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
-          {hasMultiple && index > 0 && (
+          {showArrowButtons && index > 0 && (
             <button
               className="absolute left-2 top-1/2 -translate-y-1/2 cursor-pointer rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
               type="button"
@@ -109,7 +209,7 @@ export default function ImageViewer({ images, initialIndex, onClose }) {
               <ChevronLeft size={28} />
             </button>
           )}
-          {hasMultiple && index < images.length - 1 && (
+          {showArrowButtons && index < images.length - 1 && (
             <button
               className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
               type="button"
