@@ -22,6 +22,8 @@ export default function MyPage({ profile }) {
   const [signingOut, setSigningOut] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showWithdrawFinalModal, setShowWithdrawFinalModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [applyingUpdate, setApplyingUpdate] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -48,6 +50,13 @@ export default function MyPage({ profile }) {
     await signOut();
     queryClient.clear();
     navigate("/", { replace: true });
+  }
+
+  async function handleApplyUpdate() {
+    setApplyingUpdate(true);
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => caches.delete(key)));
+    window.location.reload();
   }
 
   return (
@@ -156,13 +165,10 @@ export default function MyPage({ profile }) {
           <button
             className="inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-border-default bg-surface-base px-5 text-xs text-text-tertiary hover:bg-surface-subtle"
             type="button"
-            onClick={async () => {
-              const keys = await caches.keys()
-              await Promise.all(keys.map(k => caches.delete(k)))
-              window.location.reload()
-            }}
+            aria-label="앱 캐시를 지우고 최신 화면으로 새로고침"
+            onClick={() => setShowUpdateModal(true)}
           >
-            새로고침
+            앱 업데이트 적용
           </button>
         </div>
       </div>
@@ -198,6 +204,47 @@ export default function MyPage({ profile }) {
                 disabled={signingOut}
                 type="button"
                 onClick={() => setShowSignOutModal(false)}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showUpdateModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowUpdateModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-surface-base p-5 shadow-lg sm:p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">
+              앱 업데이트
+            </p>
+            <h2 className="text-lg font-bold text-text-primary">
+              최신 화면으로 다시 불러올까요?
+            </h2>
+            <p className="mt-2 text-sm text-text-secondary">
+              업데이트 이후에는 잠시 화면이 느려질 수 있습니다. 화면이 이상하거나
+              오래된 내용이 보일 때만 사용해 주세요.
+            </p>
+            <div className="mt-5 flex gap-2.5">
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
+                disabled={applyingUpdate}
+                type="button"
+                onClick={handleApplyUpdate}
+              >
+                {applyingUpdate ? "적용 중" : "적용하기"}
+              </button>
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"
+                disabled={applyingUpdate}
+                type="button"
+                onClick={() => setShowUpdateModal(false)}
               >
                 닫기
               </button>

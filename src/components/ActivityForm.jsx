@@ -324,7 +324,7 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
           />
         </label>
 
-        <label className="grid gap-2 text-xs font-semibold text-text-secondary">
+        <label className="grid gap-1.5 text-xs font-semibold text-text-secondary">
           오픈채팅방 링크
           <input
             className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
@@ -333,10 +333,10 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
             onChange={updateField}
             placeholder="https://open.kakao.com/..."
           />
+          <span className="font-normal leading-snug text-text-tertiary">
+            수락된 신청자에게만 표시됩니다. 선택사항입니다.
+          </span>
         </label>
-        <span className="text-xs text-text-tertiary md:col-span-2">
-          수락된 신청자에게만 표시됩니다. 선택사항입니다.
-        </span>
         <label className="flex cursor-pointer items-center gap-3 md:col-span-2">
           <input
             className="h-5 w-5"
@@ -348,7 +348,7 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
             }
           />
           <span className="text-xs font-semibold text-text-secondary">
-            신청 시 종목 선택 필수
+            신청 시 종목 선택을 필수로 설정하기
           </span>
         </label>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">

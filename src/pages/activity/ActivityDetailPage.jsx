@@ -22,6 +22,10 @@ const statusLabel = {
   cancelled: "취소됨",
 };
 
+function isDeadlinePassed(applicationDeadline, now) {
+  return new Date(applicationDeadline) <= now;
+}
+
 export default function ActivityDetailPage({ table, profile }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -54,7 +58,7 @@ export default function ActivityDetailPage({ table, profile }) {
     : [];
 
   const deadlinePassed = activity
-    ? new Date(activity.application_deadline) <= new Date()
+    ? isDeadlinePassed(activity.application_deadline, now)
     : true;
   const canApply = activity && !deadlinePassed;
   const myPendingApp = application?.status === "pending";
@@ -188,23 +192,27 @@ export default function ActivityDetailPage({ table, profile }) {
             </dd>
           </div>
         )}
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[112px_1fr] md:items-center">
           <dt className="text-xs font-semibold text-text-secondary">장소</dt>
           <dd className="m-0 text-sm text-text-primary">{activity.location}</dd>
         </div>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
-          <dt className="text-xs font-semibold text-text-secondary">시작일</dt>
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[112px_1fr] md:items-center">
+          <dt className="text-xs font-semibold text-text-secondary">
+            {cfg.label} 시작일
+          </dt>
           <dd className="m-0 text-sm text-text-primary">
             {formatDate(activity.starts_at)}
           </dd>
         </div>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
-          <dt className="text-xs font-semibold text-text-secondary">종료일</dt>
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[112px_1fr] md:items-center">
+          <dt className="text-xs font-semibold text-text-secondary">
+            {cfg.label} 종료일
+          </dt>
           <dd className="m-0 text-sm text-text-primary">
             {formatDate(activity.ends_at)}
           </dd>
         </div>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[112px_1fr] md:items-center">
           <dt className="text-xs font-semibold text-text-secondary">
             신청 마감일
           </dt>
@@ -215,7 +223,7 @@ export default function ActivityDetailPage({ table, profile }) {
             </span>
           </dd>
         </div>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr]">
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[112px_1fr] md:items-center">
           <dt className="text-xs font-semibold text-text-secondary">정원</dt>
           <dd className="m-0 text-sm text-text-primary">
             {activity.capacity}명

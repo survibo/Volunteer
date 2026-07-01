@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Pencil, Users } from "lucide-react";
+import { ChevronRight, Pencil, Users } from "lucide-react";
 import { getActivityKind } from "../lib/activityApi";
 import { useActivities, useApplicantCounts } from "../hooks/useActivities";
 import { deadlineDdayText, formatDateTime } from "../lib/dateUtils";
@@ -21,14 +21,12 @@ function categorize(activities) {
     const deadline = new Date(a.application_deadline);
     const ends = new Date(a.ends_at);
 
-    const deadlineEnd = new Date(deadline);
-    deadlineEnd.setHours(23, 59, 59, 999);
     const endsEnd = new Date(ends);
     endsEnd.setHours(23, 59, 59, 999);
 
     if (endsEnd <= now) {
       groups.completed.push(a);
-    } else if (deadlineEnd >= now) {
+    } else if (deadline >= now) {
       groups.recruiting.push(a);
     } else {
       groups.ongoing.push(a);
@@ -46,11 +44,27 @@ function categorize(activities) {
 
 function ActivityCard({ activity, detailPath, adminEditBasePath, isAdmin, now }) {
   const navigate = useNavigate();
+  const detailTo = `${detailPath}/${activity.id}`;
+
+  function openDetail() {
+    navigate(detailTo);
+  }
 
   return (
     <div
-      className="relative cursor-pointer rounded-xl border border-border-default bg-surface-base p-5 pr-8 hover:bg-surface-subtle"
-      onClick={() => navigate(`${detailPath}/${activity.id}`)}
+      className="group relative cursor-pointer rounded-xl border border-border-default bg-surface-base p-5 pr-10 hover:bg-surface-subtle"
+      role="link"
+      tabIndex={0}
+      onClick={openDetail}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) {
+          return;
+        }
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openDetail();
+        }
+      }}
     >
       <h3 className="text-lg font-bold text-text-primary">{activity.title}</h3>
       <div className="mt-3 grid gap-1.5 text-sm text-text-secondary">
@@ -67,6 +81,10 @@ function ActivityCard({ activity, detailPath, adminEditBasePath, isAdmin, now })
             신청 {activity._applicantCount}명
           </p>
         )}
+      </div>
+      <div className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-action-default">
+        자세히 보기
+        <ChevronRight size={16} className="transition-transform group-hover:translate-x-0.5" />
       </div>
       {isAdmin && (
         <button
@@ -112,6 +130,12 @@ export default function ActivityList({
   }, []);
 
   const groups = categorize(activitiesWithCounts);
+  const filterCounts = {
+    recruiting: groups.recruiting.length,
+    ongoing: groups.ongoing.length,
+    completed: groups.completed.length,
+    all: activitiesWithCounts.length,
+  };
 
   let activeItems;
   if (filter === "all") {
@@ -133,18 +157,32 @@ export default function ActivityList({
           <TopLoadingBar />
         ) : (
           <div className="grid gap-6">
-            <div className="flex justify-end">
-              <select
-                className="rounded-lg border border-border-default bg-white px-3 py-2 text-sm text-text-primary"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-              >
-                {filterOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
+            <div
+              className="-mx-4 flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:px-0"
+              role="group"
+              aria-label={`${sectionLabel} 상태 필터`}
+            >
+              {filterOptions.map((opt) => {
+                const active = filter === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    className={
+                      active
+                        ? "shrink-0 rounded-lg bg-action-default px-3 py-2 text-sm font-semibold text-white"
+                        : "shrink-0 rounded-lg border border-border-default bg-white px-3 py-2 text-sm font-medium text-text-secondary hover:bg-surface-subtle hover:text-action-default"
+                    }
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setFilter(opt.value)}
+                  >
                     {opt.label}
-                  </option>
-                ))}
-              </select>
+                    <span className={active ? "ml-1.5 text-white/80" : "ml-1.5 text-text-tertiary"}>
+                      {filterCounts[opt.value]}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
             {hasAny ? (
               <div className="grid gap-3">

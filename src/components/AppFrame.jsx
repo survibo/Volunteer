@@ -25,13 +25,16 @@ export default function AppFrame({ profile, children }) {
         >
           K-SPARA
         </Link>
-        <nav className="order-3 col-span-2 flex flex-wrap gap-1.5 md:order-none md:col-span-1" aria-label="주요 메뉴">
+        <nav
+          className="order-3 col-span-2 -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-0.5 md:order-none md:col-span-1 md:mx-0 md:ml-3 md:flex-wrap md:overflow-visible md:px-0 md:pb-0"
+          aria-label="주요 메뉴"
+        >
           {visibleNavItems.map((item) => (
             <Link
               className={
                 location.pathname.startsWith(item.to)
-                  ? "rounded-lg bg-action-default px-3 py-2 text-sm font-semibold text-white"
-                  : "rounded-lg px-3 py-2 text-sm font-medium text-text-secondary hover:bg-surface-subtle hover:text-action-default"
+                  ? "shrink-0 rounded-lg bg-action-default px-3 py-2 text-sm font-semibold text-white"
+                  : "shrink-0 rounded-lg px-3 py-2 text-sm font-medium text-text-secondary hover:bg-surface-subtle hover:text-action-default"
               }
               key={item.to}
               to={item.to}
