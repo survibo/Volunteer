@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react'
+import { Children, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { useMyApplications } from '../../hooks/useActivities'
 import { formatDate } from '../../lib/dateUtils'
+import PaginationControls, { PAGE_SIZE } from '../../components/PaginationControls'
 import TopLoadingBar from '../../components/TopLoadingBar'
 
 const statusLabels = {
@@ -33,10 +34,13 @@ export default function MyHistoryPage({ profile, memberId, hideHeader }) {
     () => applications.filter((a) => a?.status && a?._activity),
     [applications]
   )
-  const filtered = useMemo(
-    () => kindFilter === 'all' ? validApplications : validApplications.filter((a) => a.kind === kindFilter),
-    [validApplications, kindFilter]
-  )
+  const filtered = useMemo(() => {
+    const items = kindFilter === 'all'
+      ? validApplications
+      : validApplications.filter((a) => a.kind === kindFilter)
+
+    return [...items].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  }, [validApplications, kindFilter])
   const now = useMemo(() => new Date(), [])
   const current = useMemo(
     () => filtered.filter(
@@ -87,20 +91,20 @@ export default function MyHistoryPage({ profile, memberId, hideHeader }) {
         ))}
       </div>
 
-      <Section title="신청 내역" count={current.length} emptyMessage="신청한 활동이 없습니다.">
+      <Section key={`current-${kindFilter}`} title="신청 내역" count={current.length} emptyMessage="신청한 활동이 없습니다.">
         {current.map((app) => (
           <ApplicationCard key={`${app.kind}-${app.id}`} app={app} now={now} />
         ))}
       </Section>
 
-      <Section title="이수 내역" count={completed.length} emptyMessage="이수한 활동이 없습니다.">
+      <Section key={`completed-${kindFilter}`} title="이수 내역" count={completed.length} emptyMessage="이수한 활동이 없습니다.">
         {completed.map((app) => (
           <ApplicationCard key={`${app.kind}-${app.id}`} app={app} now={now} />
         ))}
       </Section>
 
       {other.length > 0 && (
-        <Section title="기타 내역" count={other.length} emptyMessage="">
+        <Section key={`other-${kindFilter}`} title="기타 내역" count={other.length} emptyMessage="">
           {other.map((app) => (
             <ApplicationCard key={`${app.kind}-${app.id}`} app={app} now={now} />
           ))}
@@ -111,6 +115,12 @@ export default function MyHistoryPage({ profile, memberId, hideHeader }) {
 }
 
 function Section({ title, count, emptyMessage, children }) {
+  const [page, setPage] = useState(1)
+  const items = Children.toArray(children)
+  const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const visibleItems = items.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
   return (
     <div className="grid gap-3">
       <h2 className="text-lg font-bold text-text-primary">
@@ -122,7 +132,10 @@ function Section({ title, count, emptyMessage, children }) {
           {emptyMessage}
         </div>
       ) : (
-        <div className="grid gap-3">{children}</div>
+        <div className="grid gap-3">
+          {visibleItems}
+          <PaginationControls page={currentPage} total={count} onPageChange={setPage} />
+        </div>
       )}
     </div>
   )

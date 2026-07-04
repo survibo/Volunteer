@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import TopLoadingBar from '../../components/TopLoadingBar'
 import { downloadMemberCert } from '../../lib/pdfCert'
@@ -108,20 +108,16 @@ export default function AdminMemberDetailPage() {
   const [memoDraft, setMemoDraft] = useState('')
   const [memoError, setMemoError] = useState('')
   const [memoSaved, setMemoSaved] = useState(false)
-  const [chipColor, setChipColor] = useState('')
-  const [chipLabel, setChipLabel] = useState('')
+  const [chipDraft, setChipDraft] = useState(null)
 
-  useEffect(() => {
-    if (member && memoOpen) {
-      setMemoDraft(member.memo ?? '')
-    }
-  }, [member?.memo, memoOpen])
-
-  useEffect(() => {
-    const chip = parseChip(member?.user_chip)
-    setChipColor(chip?.color ?? '')
-    setChipLabel(chip?.label ?? '')
-  }, [member?.user_chip])
+  const memberChip = parseChip(member?.user_chip)
+  const memberChipSource = member?.user_chip ?? ''
+  const chipColor = chipDraft?.source === memberChipSource
+    ? chipDraft.color
+    : memberChip?.color ?? ''
+  const chipLabel = chipDraft?.source === memberChipSource
+    ? chipDraft.label
+    : memberChip?.label ?? ''
 
   const processing = approveMutation.isPending || cancelMutation.isPending || grantMutation.isPending || chipMutation.isPending || memoMutation.isPending
 
@@ -338,7 +334,7 @@ export default function AdminMemberDetailPage() {
               className={`h-8 w-8 cursor-pointer rounded-full border-2 transition-all hover:scale-110 disabled:cursor-progress disabled:opacity-65 ${chipColor === c.value ? 'border-text-primary' : 'border-border-default'}`}
               style={{ backgroundColor: c.bg }}
               title={c.name}
-              onClick={() => setChipColor(c.value)}
+              onClick={() => setChipDraft({ source: memberChipSource, color: c.value, label: chipLabel })}
             />
           ))}
         </div>
@@ -350,7 +346,7 @@ export default function AdminMemberDetailPage() {
               placeholder="칩 텍스트 (최대 10자)"
               maxLength={10}
               value={chipLabel}
-              onChange={(e) => setChipLabel(e.target.value)}
+              onChange={(e) => setChipDraft({ source: memberChipSource, color: chipColor, label: e.target.value })}
             />
             <div className="flex gap-2">
               <button
@@ -358,7 +354,10 @@ export default function AdminMemberDetailPage() {
                 disabled={processing || !chipLabel}
                 className="inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-lg bg-action-default px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
                 onClick={() =>
-                  chipMutation.mutate({ id, color: chipColor, label: chipLabel })
+                  chipMutation.mutate(
+                    { id, color: chipColor, label: chipLabel },
+                    { onSuccess: () => setChipDraft(null) },
+                  )
                 }
               >
                 저장
@@ -368,7 +367,10 @@ export default function AdminMemberDetailPage() {
                   type="button"
                   disabled={processing}
                   className="inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-lg border border-border-default bg-white px-4 text-sm font-medium text-text-primary hover:bg-surface-subtle disabled:cursor-progress disabled:opacity-65"
-                  onClick={() => chipMutation.mutate({ id, color: '', label: '' })}
+                  onClick={() => chipMutation.mutate(
+                    { id, color: '', label: '' },
+                    { onSuccess: () => setChipDraft(null) },
+                  )}
                 >
                   없음
                 </button>
@@ -384,7 +386,14 @@ export default function AdminMemberDetailPage() {
           <button
             type="button"
             className="inline-flex min-h-[32px] cursor-pointer items-center justify-center rounded-lg border border-border-default bg-white px-3 text-xs font-medium text-text-primary hover:bg-surface-subtle"
-            onClick={() => setMemoOpen(!memoOpen)}
+            onClick={() => {
+              if (memoOpen) {
+                setMemoOpen(false)
+              } else {
+                setMemoDraft(member.memo ?? '')
+                setMemoOpen(true)
+              }
+            }}
           >
             {memoOpen ? '닫기' : member.memo ? '수정' : '작성'}
           </button>
@@ -448,7 +457,10 @@ export default function AdminMemberDetailPage() {
               <button
                 type="button"
                 className="inline cursor-pointer text-text-tertiary hover:underline"
-                onClick={() => setMemoOpen(true)}
+                onClick={() => {
+                  setMemoDraft(member.memo ?? '')
+                  setMemoOpen(true)
+                }}
               >
                 {' '}... 더보기
               </button>

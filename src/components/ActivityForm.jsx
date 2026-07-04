@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { getActivityKind } from '../lib/activityApi'
+import { defaultApplicationNotePrompt } from '../lib/applicationNotePrompt'
 import { getImageUrl, parseImagePaths, uploadActivityImages } from '../lib/storageApi'
 import { useCreateActivity, useUpdateActivity } from '../hooks/useActivities'
 import ImageWithFallback from './ImageWithFallback'
@@ -31,6 +32,10 @@ function toLocalDateKey(value) {
   return value.slice(0, 10)
 }
 
+function textOrNull(value) {
+  return value.trim() ? value : null
+}
+
 const emptyForm = {
   title: '',
   description: '',
@@ -41,6 +46,9 @@ const emptyForm = {
   capacity: '',
   chat_link: '',
   require_application_note: false,
+  application_note_label: '',
+  application_note_description: '',
+  application_note_placeholder: '',
 }
 
 function buildInitial(initialData) {
@@ -55,6 +63,9 @@ function buildInitial(initialData) {
     capacity: String(initialData.capacity ?? ''),
     chat_link: initialData.chat_link ?? '',
     require_application_note: initialData.require_application_note ?? false,
+    application_note_label: initialData.application_note_label ?? '',
+    application_note_description: initialData.application_note_description ?? '',
+    application_note_placeholder: initialData.application_note_placeholder ?? '',
   }
 }
 
@@ -176,6 +187,15 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
       capacity,
       chat_link: form.chat_link.trim() || null,
       require_application_note: form.require_application_note,
+      application_note_label: form.require_application_note
+        ? form.application_note_label.trim() || null
+        : null,
+      application_note_description: form.require_application_note
+        ? textOrNull(form.application_note_description)
+        : null,
+      application_note_placeholder: form.require_application_note
+        ? textOrNull(form.application_note_placeholder)
+        : null,
     }
 
     let error
@@ -337,20 +357,78 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
             수락된 신청자에게만 표시됩니다. 선택사항입니다.
           </span>
         </label>
-        <label className="flex cursor-pointer items-center gap-3 md:col-span-2">
-          <input
-            className="h-5 w-5"
-            type="checkbox"
-            name="require_application_note"
-            checked={form.require_application_note}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, require_application_note: e.target.checked }))
-            }
-          />
-          <span className="text-xs font-semibold text-text-secondary">
-            신청 시 종목 선택을 필수로 설정하기
-          </span>
-        </label>
+        <div className="grid gap-3 rounded-xl border border-border-default bg-white p-4 md:col-span-2">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              className="mt-0.5 h-5 w-5"
+              type="checkbox"
+              name="require_application_note"
+              checked={form.require_application_note}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, require_application_note: e.target.checked }))
+              }
+            />
+            <span>
+              <span className="block text-sm font-semibold text-text-primary">
+                신청자에게 추가 정보를 필수로 입력받기
+              </span>
+              <span className="mt-1 block text-xs font-normal leading-snug text-text-secondary">
+                종목, 가능 날짜, 희망 시간처럼 신청자가 작성해야 하는 내용을 직접 안내합니다.
+              </span>
+            </span>
+          </label>
+
+          {form.require_application_note && (
+            <div className="grid gap-3 border-t border-border-default pt-3 md:grid-cols-2">
+              <label className="grid gap-1.5 text-xs font-semibold text-text-secondary md:col-span-2">
+                질문 제목
+                <input
+                  className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+                  name="application_note_label"
+                  value={form.application_note_label}
+                  onChange={updateField}
+                  placeholder={defaultApplicationNotePrompt.label}
+                />
+              </label>
+              <label className="grid gap-1.5 text-xs font-semibold text-text-secondary md:col-span-2">
+                설명
+                <textarea
+                  className="min-h-20 w-full resize-y rounded-lg border border-border-default bg-white px-3 py-2 text-text-primary placeholder:text-text-tertiary"
+                  name="application_note_description"
+                  value={form.application_note_description}
+                  onChange={updateField}
+                  placeholder="예: 가능한 날짜와 시간을 모두 적어주세요."
+                />
+              </label>
+              <label className="grid gap-1.5 text-xs font-semibold text-text-secondary md:col-span-2">
+                입력 예시
+                <textarea
+                  className="min-h-20 w-full resize-y rounded-lg border border-border-default bg-white px-3 py-2 text-text-primary placeholder:text-text-tertiary"
+                  name="application_note_placeholder"
+                  value={form.application_note_placeholder}
+                  onChange={updateField}
+                  placeholder={defaultApplicationNotePrompt.placeholder}
+                />
+              </label>
+              <div className="rounded-lg bg-surface-subtle p-3 text-sm md:col-span-2">
+                <p className="text-xs font-semibold text-text-secondary">신청자 화면 미리보기</p>
+                <p className="mt-2 font-semibold text-text-primary">
+                  {form.application_note_label.trim() || defaultApplicationNotePrompt.label}
+                </p>
+                {form.application_note_description.trim() && (
+                  <p className="mt-1 whitespace-pre-wrap text-xs leading-snug text-text-secondary">
+                    {form.application_note_description}
+                  </p>
+                )}
+                <div className="mt-2 whitespace-pre-wrap rounded-lg border border-border-default bg-white px-3 py-2 text-text-tertiary">
+                  {form.application_note_placeholder.trim()
+                    ? form.application_note_placeholder
+                    : defaultApplicationNotePrompt.placeholder}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
         <label className="grid gap-2 text-xs font-semibold text-text-secondary">
           신청 마감일
           <input
@@ -453,6 +531,14 @@ export default function ActivityForm({ table, redirectTo, sectionLabel, pageTitl
                 <div className="grid grid-cols-[80px_1fr] gap-2">
                   <dt className="font-medium text-text-secondary">채팅방</dt>
                   <dd className="m-0 truncate text-text-primary">{form.chat_link.trim()}</dd>
+                </div>
+              )}
+              {form.require_application_note && (
+                <div className="grid grid-cols-[80px_1fr] gap-2">
+                  <dt className="font-medium text-text-secondary">추가정보</dt>
+                  <dd className="m-0 text-text-primary">
+                    {form.application_note_label.trim() || defaultApplicationNotePrompt.label}
+                  </dd>
                 </div>
               )}
               {images.length > 0 && (

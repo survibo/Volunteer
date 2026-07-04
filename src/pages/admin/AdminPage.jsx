@@ -1,25 +1,32 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Download, Search } from "lucide-react";
+import PaginationControls, {
+  PAGE_SIZE,
+} from "../../components/PaginationControls";
 import TopLoadingBar from "../../components/TopLoadingBar";
 import { useMembers } from "../../hooks/useMembers";
 
 const CHIP_STYLES = {
-  red:    { bg: '#FEF2F2', border: '#FECACA', text: '#B91C1C' },
-  orange: { bg: '#FFF7ED', border: '#FED7AA', text: '#C2410C' },
-  yellow: { bg: '#FEFCE8', border: '#FEF08A', text: '#A16207' },
-  green:  { bg: '#F0FDF4', border: '#BBF7D0', text: '#15803D' },
-  blue:   { bg: '#EFF6FF', border: '#BFDBFE', text: '#1D4ED8' },
-  indigo: { bg: '#EEF2FF', border: '#C7D2FE', text: '#4338CA' },
-  purple: { bg: '#FAF5FF', border: '#E9D5FF', text: '#7E22CE' },
-  pink:   { bg: '#FDF2F8', border: '#FBCFE8', text: '#BE185D' },
-  brown:  { bg: '#FFF7ED', border: '#FED7AA', text: '#92400E' },
-  gray:   { bg: '#F9FAFB', border: '#E5E7EB', text: '#374151' },
-}
+  red: { bg: "#FEF2F2", border: "#FECACA", text: "#B91C1C" },
+  orange: { bg: "#FFF7ED", border: "#FED7AA", text: "#C2410C" },
+  yellow: { bg: "#FEFCE8", border: "#FEF08A", text: "#A16207" },
+  green: { bg: "#F0FDF4", border: "#BBF7D0", text: "#15803D" },
+  blue: { bg: "#EFF6FF", border: "#BFDBFE", text: "#1D4ED8" },
+  indigo: { bg: "#EEF2FF", border: "#C7D2FE", text: "#4338CA" },
+  purple: { bg: "#FAF5FF", border: "#E9D5FF", text: "#7E22CE" },
+  pink: { bg: "#FDF2F8", border: "#FBCFE8", text: "#BE185D" },
+  brown: { bg: "#FFF7ED", border: "#FED7AA", text: "#92400E" },
+  gray: { bg: "#F9FAFB", border: "#E5E7EB", text: "#374151" },
+};
 
 function parseChip(value) {
-  if (!value) return null
-  try { return JSON.parse(value) } catch { return null }
+  if (!value) return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
 }
 
 function memberNumberText(member) {
@@ -39,6 +46,56 @@ const filterRoleOptions = [
   { value: "admin", label: "관리자" },
   { value: "memo", label: "메모 있음" },
 ];
+
+const sortOptions = [
+  { value: "joined", label: "가입순" },
+  { value: "name", label: "가나다순" },
+  { value: "memberNumber", label: "회원번호순" },
+];
+
+const ADMIN_DASHBOARD_RESTORE_KEY = "adminDashboardRestoreState";
+
+function readAdminDashboardRestoreState() {
+  try {
+    return JSON.parse(
+      window.sessionStorage.getItem(ADMIN_DASHBOARD_RESTORE_KEY)
+    );
+  } catch {
+    return null;
+  }
+}
+
+function saveAdminDashboardRestoreState(state) {
+  try {
+    window.sessionStorage.setItem(
+      ADMIN_DASHBOARD_RESTORE_KEY,
+      JSON.stringify(state)
+    );
+  } catch {
+    // Ignore storage failures; navigation should still work normally.
+  }
+}
+
+function clearAdminDashboardRestoreState() {
+  try {
+    window.sessionStorage.removeItem(ADMIN_DASHBOARD_RESTORE_KEY);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function getAdminScrollContainer() {
+  return document.querySelector("main");
+}
+
+function optionValueOrDefault(value, options, fallback) {
+  return options.some((option) => option.value === value) ? value : fallback;
+}
+
+function positiveIntegerOrDefault(value, fallback) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 function roleLabel(role) {
   if (role === "admin") return "관리자";
@@ -68,17 +125,26 @@ function formatFilenameDate(date) {
 
 export default function AdminPage() {
   const { data: members = [], isLoading, error } = useMembers();
-  const [query, setQuery] = useState("");
+  const [restoreState] = useState(readAdminDashboardRestoreState);
+  const [query, setQuery] = useState(() => restoreState?.query ?? "");
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportRoles, setExportRoles] = useState(
     () => new Set(["member", "pending", "admin"])
   );
-  const [roleFilter, setRoleFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState(() =>
+    optionValueOrDefault(restoreState?.roleFilter, filterRoleOptions, "all")
+  );
+  const [sortBy, setSortBy] = useState(() =>
+    optionValueOrDefault(restoreState?.sortBy, sortOptions, "joined")
+  );
+  const [page, setPage] = useState(() =>
+    positiveIntegerOrDefault(restoreState?.page, 1)
+  );
 
   const filteredMembers = useMemo(() => {
     const keyword = query.trim().toLowerCase();
 
-    return members.filter((member) => {
+    const filtered = members.filter((member) => {
       if (roleFilter === "memo") {
         return !!member.memo;
       }
@@ -101,7 +167,84 @@ export default function AdminPage() {
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(keyword));
     });
-  }, [members, query, roleFilter]);
+
+    return filtered.sort((a, b) => {
+      if (sortBy === "name") {
+        return (a.name ?? "").localeCompare(b.name ?? "", "ko");
+      }
+
+      if (sortBy === "memberNumber") {
+        if (a.member_number && !b.member_number) return -1;
+        if (!a.member_number && b.member_number) return 1;
+        return (a.member_number ?? "").localeCompare(
+          b.member_number ?? "",
+          "ko",
+          {
+            numeric: true,
+          }
+        );
+      }
+
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+  }, [members, query, roleFilter, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredMembers.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const visibleMembers = filteredMembers.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  useEffect(() => {
+    if (
+      isLoading ||
+      (restoreState?.scrollTop == null && restoreState?.scrollY == null)
+    ) {
+      return undefined;
+    }
+
+    const scrollTop = Number(restoreState.scrollTop ?? restoreState.scrollY);
+    if (!Number.isFinite(scrollTop)) {
+      clearAdminDashboardRestoreState();
+      return undefined;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const scrollContainer = getAdminScrollContainer();
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollTop;
+      } else {
+        window.scrollTo(0, scrollTop);
+      }
+      clearAdminDashboardRestoreState();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isLoading, restoreState?.scrollTop, restoreState?.scrollY]);
+
+  function saveDashboardPosition(event) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey
+    ) {
+      return;
+    }
+
+    const scrollContainer = getAdminScrollContainer();
+
+    saveAdminDashboardRestoreState({
+      query,
+      roleFilter,
+      sortBy,
+      page: currentPage,
+      scrollTop: scrollContainer?.scrollTop ?? window.scrollY,
+    });
+  }
 
   function toggleExportRole(role) {
     setExportRoles((prev) => {
@@ -189,14 +332,31 @@ export default function AdminPage() {
             onClick={() => setExportModalOpen(true)}
           >
             <Download size={16} />
-            Excel 추출
+            Excel
           </button>
           <select
-            className="min-h-[38px] w-28 rounded-lg border border-border-default bg-white px-3 text-sm font-medium text-text-primary"
+            className="min-h-[38px] w-25 rounded-lg border border-border-default bg-white px-3 text-sm font-medium text-text-primary"
             value={roleFilter}
-            onChange={(event) => setRoleFilter(event.target.value)}
+            onChange={(event) => {
+              setRoleFilter(event.target.value);
+              setPage(1);
+            }}
           >
             {filterRoleOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select
+            className="min-h-[38px] w-25 rounded-lg border border-border-default bg-white px-3 text-sm font-medium text-text-primary"
+            value={sortBy}
+            onChange={(event) => {
+              setSortBy(event.target.value);
+              setPage(1);
+            }}
+          >
+            {sortOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -214,7 +374,10 @@ export default function AdminPage() {
             className="min-h-11 w-full rounded-lg border border-border-default bg-white pl-10 pr-3 text-text-primary placeholder:text-text-tertiary"
             placeholder="이름, 회원번호, 전화번호..."
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
           />
         </label>
 
@@ -226,14 +389,15 @@ export default function AdminPage() {
           <p className="text-sm text-text-secondary">표시할 회원이 없습니다.</p>
         ) : (
           <div className="grid gap-2">
-            {filteredMembers.map((member) => {
-              const chip = parseChip(member.user_chip)
-              const chipStyle = chip ? CHIP_STYLES[chip.color] : null
+            {visibleMembers.map((member) => {
+              const chip = parseChip(member.user_chip);
+              const chipStyle = chip ? CHIP_STYLES[chip.color] : null;
               return (
                 <Link
                   className="grid gap-1 rounded-lg border border-border-default bg-white px-4 py-3 hover:bg-surface-subtle"
                   key={member.id}
                   to={`/admin/members/${member.id}`}
+                  onClick={saveDashboardPosition}
                 >
                   <div className="grid gap-1 sm:grid-cols-[1fr_auto] sm:items-center">
                     <span className="flex flex-wrap items-center gap-2 font-semibold text-text-primary">
@@ -260,14 +424,19 @@ export default function AdminPage() {
                       <span>{memberNumberText(member)}</span>
                       {member.memo && (
                         <span className="truncate text-xs text-text-tertiary">
-                          {member.memo.split('\n')[0]}
+                          {member.memo.split("\n")[0]}
                         </span>
                       )}
                     </span>
                   </div>
                 </Link>
-              )
+              );
             })}
+            <PaginationControls
+              page={currentPage}
+              total={filteredMembers.length}
+              onPageChange={setPage}
+            />
           </div>
         )}
       </div>

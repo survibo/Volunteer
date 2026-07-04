@@ -8,6 +8,7 @@ import {
   getActivityConfig,
   getActivityKind,
 } from "../../lib/activityApi";
+import { getApplicationNotePrompt } from "../../lib/applicationNotePrompt";
 import { useActivity, useApplyActivity, useCancelApplication, useMyApplication } from "../../hooks/useActivities";
 import { getImageUrl, parseImagePaths } from "../../lib/storageApi";
 import ImageWithFallback from "../../components/ImageWithFallback";
@@ -74,7 +75,7 @@ export default function ActivityDetailPage({ table, profile }) {
   async function handleApply() {
     setErrorMessage("");
     if (activity?.require_application_note && !applicationNote.trim()) {
-      setErrorMessage("종목을 입력해주세요.");
+      setErrorMessage(`${getApplicationNotePrompt(activity).label}을(를) 입력해주세요.`);
       return;
     }
     applyMutation.mutate(
@@ -107,6 +108,8 @@ export default function ActivityDetailPage({ table, profile }) {
   if (!activity) {
     return <ErrorState message="존재하지 않는 게시물입니다." />;
   }
+
+  const applicationNotePrompt = getApplicationNotePrompt(activity);
 
   return (
     <section className="grid gap-6 md:mx-auto md:w-full md:max-w-[800px]">
@@ -272,10 +275,15 @@ export default function ActivityDetailPage({ table, profile }) {
           <div className="grid gap-3">
             {activity?.require_application_note && (
               <label className="grid gap-2 text-xs font-semibold text-text-secondary">
-                종목 선택(1, 2, 3순위)
+                {applicationNotePrompt.label}
+                {applicationNotePrompt.description && (
+                  <span className="whitespace-pre-wrap font-normal leading-snug text-text-secondary">
+                    {applicationNotePrompt.description}
+                  </span>
+                )}
                 <textarea
                   className="min-h-24 w-full resize-y rounded-lg border border-border-default bg-white px-3 py-2 text-text-primary placeholder:text-text-tertiary"
-                  placeholder="1순위: OO, 2순위: OO, 3순위: OO"
+                  placeholder={applicationNotePrompt.placeholder}
                   value={applicationNote}
                   onChange={(e) => setApplicationNote(e.target.value)}
                 />

@@ -203,7 +203,7 @@ export async function listApplications(kind, activityId) {
   const cfg = getActivityConfig(kind)
   const { data, error } = await supabase
     .from(cfg.applicationTable)
-    .select(`*, users!${cfg.userRelation}(name, role, member_number, phone, email, workplace_or_school, volunteer_experience, education_experience)`)
+    .select(`*, users!${cfg.userRelation}(id, name, role, member_number, phone, email, workplace_or_school, volunteer_experience, education_experience)`)
     .eq(cfg.foreignKey, activityId)
     .order('created_at', { ascending: false })
 

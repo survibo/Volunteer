@@ -26,7 +26,7 @@ export default function AppFrame({ profile, children }) {
           K-SPARA
         </Link>
         <nav
-          className="order-3 col-span-2 -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-0.5 md:order-none md:col-span-1 md:mx-0 md:ml-3 md:flex-wrap md:overflow-visible md:px-0 md:pb-0"
+          className="scrollbar-none order-3 col-span-2 -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-0.5 md:order-none md:col-span-1 md:mx-0 md:ml-3 md:flex-wrap md:overflow-visible md:px-0 md:pb-0"
           aria-label="주요 메뉴"
         >
           {visibleNavItems.map((item) => (

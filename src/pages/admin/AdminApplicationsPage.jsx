@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { CheckCheck, Download, Search, X } from "lucide-react";
+import PaginationControls, { PAGE_SIZE } from "../../components/PaginationControls";
 import TopLoadingBar from "../../components/TopLoadingBar";
 import { getActivityConfig, getActivityKind } from "../../lib/activityApi";
 import {
@@ -14,6 +15,11 @@ const statusLabel = {
   accepted: "수락됨",
   rejected: "거절됨",
   cancelled: "취소됨",
+};
+
+const decisionLabel = {
+  accepted: "수락",
+  rejected: "거절",
 };
 
 const exportStatusOptions = [
@@ -92,6 +98,7 @@ export default function AdminApplicationsPage({ table }) {
   const cfg = getActivityConfig(kind);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [processing, setProcessing] = useState(null);
+  const [decisionConfirm, setDecisionConfirm] = useState(null);
   const [cancelConfirm, setCancelConfirm] = useState(null);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportStatuses, setExportStatuses] = useState(
@@ -99,6 +106,7 @@ export default function AdminApplicationsPage({ table }) {
   );
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
 
   const { data: activity, isLoading: activityLoading } = useActivityMaybe(
     kind,
@@ -109,6 +117,12 @@ export default function AdminApplicationsPage({ table }) {
   const decideMutation = useDecideApplications(kind);
 
   const loading = activityLoading || appsLoading;
+
+  const decisionTargets = decisionConfirm
+    ? decisionConfirm.applicationIds
+        .map((applicationId) => applications.find((app) => app?.id === applicationId))
+        .filter(Boolean)
+    : [];
 
   const acceptedCount = applications.filter(
     (app) => app?.status === "accepted"
@@ -141,6 +155,13 @@ export default function AdminApplicationsPage({ table }) {
     });
   }, [applications, query, statusFilter]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredApplications.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const visibleApplications = filteredApplications.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
   function toggleSelect(appId) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -154,6 +175,10 @@ export default function AdminApplicationsPage({ table }) {
   }
 
   function handleApplicationCardKeyDown(event, appId) {
+    if (event.target !== event.currentTarget) {
+      return;
+    }
+
     if (event.key !== "Enter" && event.key !== " ") {
       return;
     }
@@ -182,6 +207,20 @@ export default function AdminApplicationsPage({ table }) {
 
   function openCancelConfirm(applicationIds) {
     setCancelConfirm({ applicationIds });
+  }
+
+  function openDecisionConfirm(applicationIds, nextStatus) {
+    setDecisionConfirm({ applicationIds, nextStatus });
+  }
+
+  async function confirmDecisionApplications() {
+    if (!decisionConfirm) {
+      return;
+    }
+
+    const { applicationIds, nextStatus } = decisionConfirm;
+    setDecisionConfirm(null);
+    await handleDecide(applicationIds, nextStatus);
   }
 
   async function confirmCancelApplications() {
@@ -241,7 +280,7 @@ export default function AdminApplicationsPage({ table }) {
         "봉사활동 이력",
         "교육이수 이력",
         "완료된 활동 제목",
-        "신청 종목",
+        "답변 내용",
       ],
       ...rows,
     ]);
@@ -325,7 +364,7 @@ export default function AdminApplicationsPage({ table }) {
                 className="inline-flex min-h-[36px] cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-action-default px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
                 disabled={processing === "batch"}
                 type="button"
-                onClick={() => handleDecide([...selectedIds], "accepted")}
+                onClick={() => openDecisionConfirm([...selectedIds], "accepted")}
               >
                 <CheckCheck size={16} />
                 수락
@@ -334,7 +373,7 @@ export default function AdminApplicationsPage({ table }) {
                 className="inline-flex min-h-[36px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-600 hover:bg-red-100 disabled:cursor-progress disabled:opacity-65"
                 disabled={processing === "batch"}
                 type="button"
-                onClick={() => handleDecide([...selectedIds], "rejected")}
+                onClick={() => openDecisionConfirm([...selectedIds], "rejected")}
               >
                 <X size={16} />
                 거절
@@ -368,14 +407,20 @@ export default function AdminApplicationsPage({ table }) {
                 className="min-h-11 w-full rounded-lg border border-border-default bg-white pl-10 pr-3 text-text-primary placeholder:text-text-tertiary"
                 placeholder="이름, 회원번호, 전화번호..."
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPage(1);
+                }}
               />
             </label>
             <div className="flex items-center justify-end gap-2">
               <select
                 className="min-h-11 w-28 rounded-lg border border-border-default bg-white px-3 text-sm font-medium text-text-primary"
                 value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
+                onChange={(event) => {
+                  setStatusFilter(event.target.value);
+                  setPage(1);
+                }}
               >
                 {filterStatusOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -393,7 +438,7 @@ export default function AdminApplicationsPage({ table }) {
               <strong>검색 결과가 없습니다.</strong>
             </div>
           ) : null}
-          {filteredApplications.map((app) => {
+          {visibleApplications.map((app) => {
             return (
               <div
                 key={app.id}
@@ -456,7 +501,7 @@ export default function AdminApplicationsPage({ table }) {
                   {app.application_note && (
                     <div className="grid gap-1">
                       <p className="text-xs font-semibold text-text-tertiary">
-                        신청 종목
+                        답변 내용
                       </p>
                       <p className="m-0 whitespace-pre-wrap break-all rounded-lg bg-surface-subtle px-3 py-2 text-sm text-text-primary">
                         {app.application_note}
@@ -470,7 +515,7 @@ export default function AdminApplicationsPage({ table }) {
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
-                        handleDecide([app.id], "accepted");
+                        openDecisionConfirm([app.id], "accepted");
                       }}
                     >
                       수락
@@ -481,7 +526,7 @@ export default function AdminApplicationsPage({ table }) {
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
-                        handleDecide([app.id], "rejected");
+                        openDecisionConfirm([app.id], "rejected");
                       }}
                     >
                       거절
@@ -502,6 +547,58 @@ export default function AdminApplicationsPage({ table }) {
               </div>
             );
           })}
+          <PaginationControls
+            page={currentPage}
+            total={filteredApplications.length}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
+      {decisionConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setDecisionConfirm(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-surface-base p-6 shadow-lg"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-action-default">
+              신청 상태 변경
+            </p>
+            <h2 className="text-lg font-bold text-text-primary">
+              선택한 신청을 {decisionLabel[decisionConfirm.nextStatus]}할까요?
+            </h2>
+            <p className="mt-2 text-sm text-text-secondary">
+              {decisionConfirm.applicationIds.length}건의 신청 상태가 {statusLabel[decisionConfirm.nextStatus]}으로 변경됩니다.
+            </p>
+            {decisionTargets.length > 0 && (
+              <div className="mt-4 rounded-lg bg-surface-subtle px-3 py-2 text-sm text-text-primary">
+                {decisionTargets.map((app) => app.users?.name ?? "-").join(", ")}
+              </div>
+            )}
+            <div className="mt-5 flex gap-2.5">
+              <button
+                className={
+                  decisionConfirm.nextStatus === "accepted"
+                    ? "inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-action-default px-5 font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
+                    : "inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-status-error-text px-5 font-semibold text-white hover:opacity-80 disabled:cursor-progress disabled:opacity-65"
+                }
+                disabled={processing !== null}
+                type="button"
+                onClick={confirmDecisionApplications}
+              >
+                {decisionLabel[decisionConfirm.nextStatus]}
+              </button>
+              <button
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-border-default bg-white px-5 font-medium text-text-primary hover:bg-surface-subtle"
+                type="button"
+                onClick={() => setDecisionConfirm(null)}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
         </div>
       )}
       {cancelConfirm && (
@@ -579,7 +676,7 @@ export default function AdminApplicationsPage({ table }) {
             </div>
             <p className="mt-3 text-sm text-text-secondary">
               이름, 회원번호, 소속, 전화번호, 이메일, 신청 일시, exp_vol,
-              exp_edu, 완료된 활동 제목, 신청 종목이 포함됩니다.
+              exp_edu, 완료된 활동 제목, 답변 내용이 포함됩니다.
             </p>
             <div className="mt-5 flex gap-2.5">
               <button

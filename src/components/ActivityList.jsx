@@ -4,6 +4,7 @@ import { ChevronRight, Pencil, Users } from "lucide-react";
 import { getActivityKind } from "../lib/activityApi";
 import { useActivities, useApplicantCounts } from "../hooks/useActivities";
 import { deadlineDdayText, formatDateTime } from "../lib/dateUtils";
+import PaginationControls, { PAGE_SIZE } from "./PaginationControls";
 import TopLoadingBar from "./TopLoadingBar";
 
 const filterOptions = [
@@ -36,13 +37,23 @@ function categorize(activities) {
   groups.recruiting.sort(
     (a, b) => new Date(b.created_at) - new Date(a.created_at)
   );
-  groups.ongoing.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  groups.completed.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  groups.ongoing.sort(
+    (a, b) => new Date(b.created_at) - new Date(a.created_at)
+  );
+  groups.completed.sort(
+    (a, b) => new Date(b.created_at) - new Date(a.created_at)
+  );
 
   return groups;
 }
 
-function ActivityCard({ activity, detailPath, adminEditBasePath, isAdmin, now }) {
+function ActivityCard({
+  activity,
+  detailPath,
+  adminEditBasePath,
+  isAdmin,
+  now,
+}) {
   const navigate = useNavigate();
   const detailTo = `${detailPath}/${activity.id}`;
 
@@ -84,7 +95,10 @@ function ActivityCard({ activity, detailPath, adminEditBasePath, isAdmin, now })
       </div>
       <div className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-action-default">
         자세히 보기
-        <ChevronRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+        <ChevronRight
+          size={16}
+          className="transition-transform group-hover:translate-x-0.5"
+        />
       </div>
       {isAdmin && (
         <button
@@ -120,6 +134,7 @@ export default function ActivityList({
     ? activities.map((a) => ({ ...a, _applicantCount: counts[a.id] ?? 0 }))
     : activities;
   const [filter, setFilter] = useState("recruiting");
+  const [page, setPage] = useState(1);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -139,12 +154,22 @@ export default function ActivityList({
 
   let activeItems;
   if (filter === "all") {
-    activeItems = [...groups.recruiting, ...groups.ongoing, ...groups.completed];
+    activeItems = [
+      ...groups.recruiting,
+      ...groups.ongoing,
+      ...groups.completed,
+    ];
   } else {
     activeItems = groups[filter];
   }
 
   const hasAny = activeItems.length > 0;
+  const totalPages = Math.max(1, Math.ceil(activeItems.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const visibleItems = activeItems.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
 
   return (
     <>
@@ -158,7 +183,7 @@ export default function ActivityList({
         ) : (
           <div className="grid gap-6">
             <div
-              className="-mx-4 flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:px-0"
+              className="-mx-4 scrollbar-none flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:px-0"
               role="group"
               aria-label={`${sectionLabel} 상태 필터`}
             >
@@ -174,10 +199,19 @@ export default function ActivityList({
                     }
                     type="button"
                     aria-pressed={active}
-                    onClick={() => setFilter(opt.value)}
+                    onClick={() => {
+                      setFilter(opt.value);
+                      setPage(1);
+                    }}
                   >
                     {opt.label}
-                    <span className={active ? "ml-1.5 text-white/80" : "ml-1.5 text-text-tertiary"}>
+                    <span
+                      className={
+                        active
+                          ? "ml-1.5 text-white/80"
+                          : "ml-1.5 text-text-tertiary"
+                      }
+                    >
                       {filterCounts[opt.value]}
                     </span>
                   </button>
@@ -186,24 +220,43 @@ export default function ActivityList({
             </div>
             {hasAny ? (
               <div className="grid gap-3">
-                {activeItems.map((activity) => (
-                  <ActivityCard key={activity.id} activity={activity} detailPath={detailBasePath} adminEditBasePath={isAdmin ? `/admin${detailBasePath}` : null} isAdmin={isAdmin} now={now} />
+                {visibleItems.map((activity) => (
+                  <ActivityCard
+                    key={activity.id}
+                    activity={activity}
+                    detailPath={detailBasePath}
+                    adminEditBasePath={
+                      isAdmin ? `/admin${detailBasePath}` : null
+                    }
+                    isAdmin={isAdmin}
+                    now={now}
+                  />
                 ))}
+                <PaginationControls
+                  page={currentPage}
+                  total={activeItems.length}
+                  onPageChange={setPage}
+                />
               </div>
             ) : (
               <div className="rounded-xl border border-border-default bg-surface-base p-6">
-                <strong>{
-                  filter === 'recruiting' ? '모집 중인 항목이 없습니다.' :
-                  filter === 'ongoing' ? '진행 중인 항목이 없습니다.' :
-                  filter === 'completed' ? '종료된 항목이 없습니다.' :
-                  '등록된 항목이 없습니다.'
-                }</strong>
+                <strong>
+                  {filter === "recruiting"
+                    ? "모집 중인 항목이 없습니다."
+                    : filter === "ongoing"
+                    ? "진행 중인 항목이 없습니다."
+                    : filter === "completed"
+                    ? "종료된 항목이 없습니다."
+                    : "등록된 항목이 없습니다."}
+                </strong>
                 <p className="mt-2 text-sm text-text-secondary">
-                  {filter === 'recruiting'
-                    ? (isAdmin ? `새 ${sectionLabel}을(를) 개설해 보세요.` : '다른 필터를 선택해 보세요.')
-                    : (isAdmin
-                        ? `새 ${sectionLabel}을(를) 개설해 보세요.`
-                        : `관리자가 ${sectionLabel}을(를) 개설하면 이곳에 표시됩니다.`)}
+                  {filter === "recruiting"
+                    ? isAdmin
+                      ? `새 ${sectionLabel}을(를) 개설해 보세요.`
+                      : "다른 필터를 선택해 보세요."
+                    : isAdmin
+                    ? `새 ${sectionLabel}을(를) 개설해 보세요.`
+                    : `관리자가 ${sectionLabel}을(를) 개설하면 이곳에 표시됩니다.`}
                 </p>
               </div>
             )}
