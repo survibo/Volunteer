@@ -396,7 +396,27 @@ create index if not exists education_applications_cancelled_by_idx     on public
 
 
 -- ---------------------------------------------------------------------------
--- 4.7 notifications
+-- 4.7 application_admin_memos
+-- ---------------------------------------------------------------------------
+-- 신청별 관리자 전용 메모다. 두 신청 유형 중 하나에만 연결된다.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.application_admin_memos (
+  id                       uuid        primary key default gen_random_uuid(),
+  volunteer_application_id uuid        unique references public.volunteer_applications(id) on delete cascade,
+  education_application_id uuid        unique references public.education_applications(id) on delete cascade,
+  memo                     text        not null,
+  created_at               timestamptz not null default now(),
+  updated_at               timestamptz not null default now(),
+  constraint application_admin_memos_single_application_check
+    check (num_nonnulls(volunteer_application_id, education_application_id) = 1),
+  constraint application_admin_memos_memo_not_blank_check
+    check (btrim(memo) <> '')
+);
+
+
+-- ---------------------------------------------------------------------------
+-- 4.8 notifications
 -- ---------------------------------------------------------------------------
 
 create table if not exists public.notifications (
@@ -501,6 +521,11 @@ create trigger set_education_applications_updated_at
   before update on public.education_applications
   for each row execute function public.set_updated_at();
 
+drop trigger if exists set_application_admin_memos_updated_at on public.application_admin_memos;
+create trigger set_application_admin_memos_updated_at
+  before update on public.application_admin_memos
+  for each row execute function public.set_updated_at();
+
 drop trigger if exists set_device_tokens_updated_at on public.device_tokens;
 create trigger set_device_tokens_updated_at
   before update on public.device_tokens
@@ -517,6 +542,7 @@ alter table public.volunteer_activities     enable row level security;
 alter table public.volunteer_applications   enable row level security;
 alter table public.educations               enable row level security;
 alter table public.education_applications   enable row level security;
+alter table public.application_admin_memos  enable row level security;
 alter table public.notifications            enable row level security;
 alter table public.device_tokens            enable row level security;
 alter table public.push_config              enable row level security;
@@ -540,6 +566,7 @@ grant select, insert, update, delete on table public.volunteer_activities   to a
 grant select, insert, update on table public.volunteer_applications         to authenticated;
 grant select, insert, update, delete on table public.educations             to anon, authenticated;
 grant select, insert, update on table public.education_applications         to authenticated;
+grant select, insert, update, delete on table public.application_admin_memos to authenticated;
 grant select, update on table public.notifications                to authenticated;
 grant select, insert, update, delete on table public.device_tokens          to authenticated;
 grant select on table public.push_config                          to anon, authenticated;
@@ -1811,7 +1838,18 @@ create policy "Users can re-apply after cancellation"
   );
 
 -- ---------------------------------------------------------------------------
--- 12.6 withdrawn_users
+-- 12.6 application_admin_memos
+-- ---------------------------------------------------------------------------
+
+drop policy if exists "Admins can manage application admin memos" on public.application_admin_memos;
+create policy "Admins can manage application admin memos"
+  on public.application_admin_memos for all
+  to authenticated
+  using (private.is_admin())
+  with check (private.is_admin());
+
+-- ---------------------------------------------------------------------------
+-- 12.7 withdrawn_users
 -- ---------------------------------------------------------------------------
 
 drop policy if exists "Admins can read withdrawn users" on public.withdrawn_users;
@@ -1821,7 +1859,7 @@ create policy "Admins can read withdrawn users"
   using (private.is_admin());
 
 -- ---------------------------------------------------------------------------
--- 12.7 notifications
+-- 12.8 notifications
 -- ---------------------------------------------------------------------------
 
 drop policy if exists "notifications_select_own" on public.notifications;
@@ -1841,7 +1879,7 @@ create policy "notifications_insert_service"
   with check (auth.uid() = user_id);
 
 -- ---------------------------------------------------------------------------
--- 12.8 device_tokens
+-- 12.9 device_tokens
 -- ---------------------------------------------------------------------------
 
 drop policy if exists "device_tokens_select_own" on public.device_tokens;
@@ -1866,7 +1904,7 @@ create policy "device_tokens_delete_own"
   using (auth.uid() = user_id);
 
 -- ---------------------------------------------------------------------------
--- 12.9 push_config
+-- 12.10 push_config
 -- ---------------------------------------------------------------------------
 
 drop policy if exists "push_config_select_public_key" on public.push_config;

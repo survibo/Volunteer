@@ -9,6 +9,7 @@ export const activityConfigs = {
     userRelation: 'volunteer_applications_user_id_fkey',
     cancelRpc: 'cancel_own_volunteer_application',
     decideRpc: 'decide_volunteer_application',
+    adminMemoForeignKey: 'volunteer_application_id',
     listPath: '/volunteer',
     adminEditPath: '/admin/volunteer',
     adminApplicationsPath: '/admin/volunteer',
@@ -21,6 +22,7 @@ export const activityConfigs = {
     userRelation: 'education_applications_user_id_fkey',
     cancelRpc: 'cancel_own_education_application',
     decideRpc: 'decide_education_application',
+    adminMemoForeignKey: 'education_application_id',
     listPath: '/education',
     adminEditPath: '/admin/education',
     adminApplicationsPath: '/admin/education',
@@ -209,7 +211,57 @@ export async function listApplications(kind, activityId) {
 
   throwIfError(error)
 
-  return data ?? []
+  const applications = data ?? []
+  const applicationIds = applications.map((application) => application.id)
+
+  if (applicationIds.length === 0) {
+    return applications
+  }
+
+  const { data: adminMemos, error: adminMemosError } = await supabase
+    .from('application_admin_memos')
+    .select(`${cfg.adminMemoForeignKey}, memo`)
+    .in(cfg.adminMemoForeignKey, applicationIds)
+
+  throwIfError(adminMemosError)
+
+  const memoByApplicationId = new Map(
+    (adminMemos ?? []).map((row) => [row[cfg.adminMemoForeignKey], row.memo])
+  )
+
+  return applications.map((application) => ({
+    ...application,
+    admin_memo: memoByApplicationId.get(application.id) ?? null,
+  }))
+}
+
+export async function saveApplicationAdminMemo(kind, applicationId, memoText) {
+  const cfg = getActivityConfig(kind)
+
+  if (!memoText.trim()) {
+    const { error } = await supabase
+      .from('application_admin_memos')
+      .delete()
+      .eq(cfg.adminMemoForeignKey, applicationId)
+
+    throwIfError(error)
+    return null
+  }
+
+  const { data, error } = await supabase
+    .from('application_admin_memos')
+    .upsert(
+      {
+        [cfg.adminMemoForeignKey]: applicationId,
+        memo: memoText,
+      },
+      { onConflict: cfg.adminMemoForeignKey }
+    )
+    .select('memo')
+    .single()
+
+  throwIfError(error)
+  return data.memo
 }
 
 export async function listMyApplications(userId) {

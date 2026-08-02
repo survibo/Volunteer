@@ -3,7 +3,11 @@ import { Link, useParams } from "react-router";
 import { CheckCheck, Download, Search, X } from "lucide-react";
 import PaginationControls, { PAGE_SIZE } from "../../components/PaginationControls";
 import TopLoadingBar from "../../components/TopLoadingBar";
-import { getActivityConfig, getActivityKind } from "../../lib/activityApi";
+import {
+  getActivityConfig,
+  getActivityKind,
+  saveApplicationAdminMemo,
+} from "../../lib/activityApi";
 import {
   useActivityMaybe,
   useActivityApplications,
@@ -107,6 +111,9 @@ export default function AdminApplicationsPage({ table }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [memoEditor, setMemoEditor] = useState(null);
+  const [memoSavingId, setMemoSavingId] = useState(null);
+  const [savedMemos, setSavedMemos] = useState({});
 
   const { data: activity, isLoading: activityLoading } = useActivityMaybe(
     kind,
@@ -172,6 +179,39 @@ export default function AdminApplicationsPage({ table }) {
       }
       return next;
     });
+  }
+
+  function getAdminMemo(app) {
+    return Object.hasOwn(savedMemos, app.id)
+      ? savedMemos[app.id]
+      : app.admin_memo;
+  }
+
+  async function saveAdminMemo(applicationId) {
+    if (memoEditor?.applicationId !== applicationId) {
+      return;
+    }
+
+    setMemoSavingId(applicationId);
+    setMemoEditor((current) => ({ ...current, error: "" }));
+
+    try {
+      const memo = await saveApplicationAdminMemo(
+        kind,
+        applicationId,
+        memoEditor.draft
+      );
+      setSavedMemos((current) => ({ ...current, [applicationId]: memo }));
+      setMemoEditor(null);
+    } catch (error) {
+      setMemoEditor((current) =>
+        current?.applicationId === applicationId
+          ? { ...current, error: error.message }
+          : current
+      );
+    } finally {
+      setMemoSavingId(null);
+    }
   }
 
   function handleApplicationCardKeyDown(event, appId) {
@@ -439,6 +479,9 @@ export default function AdminApplicationsPage({ table }) {
             </div>
           ) : null}
           {visibleApplications.map((app) => {
+            const adminMemo = getAdminMemo(app);
+            const editingMemo = memoEditor?.applicationId === app.id;
+
             return (
               <div
                 key={app.id}
@@ -508,6 +551,79 @@ export default function AdminApplicationsPage({ table }) {
                       </p>
                     </div>
                   )}
+                  <div
+                    className="rounded-lg border border-border-default bg-surface-subtle p-3"
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-semibold text-text-tertiary">
+                        관리자 메모
+                      </p>
+                      <button
+                        className="inline-flex min-h-[32px] cursor-pointer items-center justify-center rounded-lg border border-border-default bg-white px-3 text-xs font-medium text-text-primary hover:bg-surface-base disabled:cursor-progress disabled:opacity-65"
+                        disabled={memoSavingId === app.id}
+                        type="button"
+                        onClick={() => {
+                          if (editingMemo) {
+                            setMemoEditor(null);
+                          } else {
+                            setMemoEditor({
+                              applicationId: app.id,
+                              draft: adminMemo ?? "",
+                              error: "",
+                            });
+                          }
+                        }}
+                      >
+                        {editingMemo ? "닫기" : adminMemo ? "수정" : "작성"}
+                      </button>
+                    </div>
+                    {editingMemo ? (
+                      <div className="mt-2 grid gap-2.5">
+                        <textarea
+                          className="min-h-24 w-full resize-y rounded-lg border border-border-default bg-white p-3 text-sm text-text-primary placeholder:text-text-tertiary"
+                          placeholder="이 신청에 대한 관리자 메모를 입력하세요"
+                          value={memoEditor.draft}
+                          onChange={(event) =>
+                            setMemoEditor((current) => ({
+                              ...current,
+                              draft: event.target.value,
+                              error: "",
+                            }))
+                          }
+                          autoFocus
+                        />
+                        {memoEditor.error && (
+                          <p className="text-sm text-status-error-text">
+                            {memoEditor.error}
+                          </p>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            className="inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-lg bg-action-default px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
+                            disabled={memoSavingId === app.id}
+                            type="button"
+                            onClick={() => saveAdminMemo(app.id)}
+                          >
+                            {memoSavingId === app.id ? "저장 중" : "저장"}
+                          </button>
+                          <button
+                            className="inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-lg border border-border-default bg-white px-4 text-sm font-medium text-text-primary hover:bg-surface-base disabled:cursor-progress disabled:opacity-65"
+                            disabled={memoSavingId === app.id}
+                            type="button"
+                            onClick={() => setMemoEditor(null)}
+                          >
+                            취소
+                          </button>
+                        </div>
+                      </div>
+                    ) : adminMemo ? (
+                      <p className="mt-2 whitespace-pre-wrap break-all text-sm text-text-primary">
+                        {adminMemo}
+                      </p>
+                    ) : null}
+                  </div>
                   <div className="flex flex-wrap items-center gap-2.5">
                     <button
                       className="min-h-[36px] cursor-pointer rounded-lg bg-action-default px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:cursor-progress disabled:opacity-65"
