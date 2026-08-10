@@ -23,7 +23,7 @@ export default function AdminMemberHistoryPage() {
           <span className="ml-2 text-lg font-normal text-text-tertiary">활동 내역</span>
         </h1>
       ) : null}
-      <MyHistoryPage memberId={id} hideHeader />
+      <MyHistoryPage memberId={id} hideHeader showAdminMemos />
     </section>
   )
 }

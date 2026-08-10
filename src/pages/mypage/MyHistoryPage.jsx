@@ -25,10 +25,12 @@ const kindFilters = [
   { value: 'education', label: '교육' },
 ]
 
-export default function MyHistoryPage({ profile, memberId, hideHeader }) {
+export default function MyHistoryPage({ profile, memberId, hideHeader, showAdminMemos = false }) {
   const [kindFilter, setKindFilter] = useState('all')
   const userId = memberId ?? profile.id
-  const { data: applications = [], isLoading } = useMyApplications(userId)
+  const { data: applications = [], isLoading } = useMyApplications(userId, {
+    includeAdminMemos: showAdminMemos,
+  })
 
   const validApplications = useMemo(
     () => applications.filter((a) => a?.status && a?._activity),
@@ -93,20 +95,20 @@ export default function MyHistoryPage({ profile, memberId, hideHeader }) {
 
       <Section key={`current-${kindFilter}`} title="신청 내역" count={current.length} emptyMessage="신청한 활동이 없습니다.">
         {current.map((app) => (
-          <ApplicationCard key={`${app.kind}-${app.id}`} app={app} now={now} />
+          <ApplicationCard key={`${app.kind}-${app.id}`} app={app} now={now} showAdminMemo={showAdminMemos} />
         ))}
       </Section>
 
       <Section key={`completed-${kindFilter}`} title="이수 내역" count={completed.length} emptyMessage="이수한 활동이 없습니다.">
         {completed.map((app) => (
-          <ApplicationCard key={`${app.kind}-${app.id}`} app={app} now={now} />
+          <ApplicationCard key={`${app.kind}-${app.id}`} app={app} now={now} showAdminMemo={showAdminMemos} />
         ))}
       </Section>
 
       {other.length > 0 && (
         <Section key={`other-${kindFilter}`} title="기타 내역" count={other.length} emptyMessage="">
           {other.map((app) => (
-            <ApplicationCard key={`${app.kind}-${app.id}`} app={app} now={now} />
+            <ApplicationCard key={`${app.kind}-${app.id}`} app={app} now={now} showAdminMemo={showAdminMemos} />
           ))}
         </Section>
       )}
@@ -141,7 +143,7 @@ function Section({ title, count, emptyMessage, children }) {
   )
 }
 
-function ApplicationCard({ app, now }) {
+function ApplicationCard({ app, now, showAdminMemo }) {
   if (!app?._activity) {
     return null
   }
@@ -174,6 +176,14 @@ function ApplicationCard({ app, now }) {
           {isPast ? '종료' : '진행중'}
         </p>
       </div>
+      {showAdminMemo && app.admin_memo && (
+        <div className="mt-4 rounded-lg border border-border-default bg-surface-subtle p-3">
+          <p className="text-xs font-semibold text-text-tertiary">관리자 메모</p>
+          <p className="mt-2 whitespace-pre-wrap break-all text-sm text-text-primary">
+            {app.admin_memo}
+          </p>
+        </div>
+      )}
     </Link>
   )
 }

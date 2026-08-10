@@ -264,7 +264,7 @@ export async function saveApplicationAdminMemo(kind, applicationId, memoText) {
   return data.memo
 }
 
-export async function listMyApplications(userId) {
+export async function listMyApplications(userId, { includeAdminMemos = false } = {}) {
   const kinds = ['volunteer', 'education']
   const results = []
 
@@ -278,7 +278,22 @@ export async function listMyApplications(userId) {
 
     throwIfError(error)
 
-    for (const app of (data ?? []).filter(Boolean)) {
+    const applications = (data ?? []).filter(Boolean)
+    let adminMemoByApplicationId = new Map()
+
+    if (includeAdminMemos && applications.length > 0) {
+      const { data: adminMemos, error: adminMemosError } = await supabase
+        .from('application_admin_memos')
+        .select(`${cfg.adminMemoForeignKey}, memo`)
+        .in(cfg.adminMemoForeignKey, applications.map((application) => application.id))
+
+      throwIfError(adminMemosError)
+      adminMemoByApplicationId = new Map(
+        (adminMemos ?? []).map((row) => [row[cfg.adminMemoForeignKey], row.memo])
+      )
+    }
+
+    for (const app of applications) {
       if (!app.status || !app[cfg.table]) {
         continue
       }
@@ -288,6 +303,9 @@ export async function listMyApplications(userId) {
         kind,
         _activity: app[cfg.table],
         detailPath: kind === 'volunteer' ? '/volunteer' : '/education',
+        ...(includeAdminMemos
+          ? { admin_memo: adminMemoByApplicationId.get(app.id) ?? null }
+          : {}),
       })
     }
   }

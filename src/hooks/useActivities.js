@@ -57,10 +57,10 @@ export function useMyApplication(kind, activityId, userId) {
   });
 }
 
-export function useMyApplications(userId) {
+export function useMyApplications(userId, { includeAdminMemos = false } = {}) {
   return useQuery({
-    queryKey: ["my-applications", userId],
-    queryFn: () => listMyApplications(userId),
+    queryKey: ["my-applications", userId, { includeAdminMemos }],
+    queryFn: () => listMyApplications(userId, { includeAdminMemos }),
     staleTime: 30 * 1000,
   });
 }
