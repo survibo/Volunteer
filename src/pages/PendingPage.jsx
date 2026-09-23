@@ -21,18 +21,20 @@ export default function PendingPage({ profile }) {
         가입비 납부
       </p>
       <h1 className="max-w-3xl text-3xl font-bold leading-tight text-text-primary md:text-5xl">
-        {profile.name}님, <br />등록이 완료되었습니다.
+        {profile.name}님, <br />
+        등록이 완료되었습니다.
       </h1>
       <p className="max-w-2xl text-sm text-text-secondary">
         가입비 확인 후 관리자가 회원번호를 부여합니다.
       </p>
       <p className="text-sm text-text-secondary">
-        아래 계좌로 가입비(6만원)를 입금해 주세요.<br/>
+        아래 계좌로 가입비(6만원)를 입금해 주세요.
+        <br />
         <a
           href="https://link24.kr/FLabCkZ"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-semibold text-action-default underline underline-offset-2 hover:text-action-hover"
+          className="font-semibold text-action-default! underline! underline-offset-2 hover:text-action-hover!"
         >
           MOU 기관
         </a>
