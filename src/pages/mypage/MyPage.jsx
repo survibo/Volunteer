@@ -22,6 +22,7 @@ export default function MyPage({ profile }) {
   const [signingOut, setSigningOut] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showWithdrawFinalModal, setShowWithdrawFinalModal] = useState(false);
+  const [withdrawConfirmText, setWithdrawConfirmText] = useState("");
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [applyingUpdate, setApplyingUpdate] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
@@ -258,7 +259,7 @@ export default function MyPage({ profile }) {
       )}
 
       <button
-        className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-red-200 bg-red-50 px-5 font-semibold text-red-600 hover:border-red-300 hover:bg-red-100 sm:w-auto"
+        className="inline-flex min-h-[44px] cursor-pointer items-center justify-self-center px-3 text-xs text-text-tertiary underline underline-offset-2 hover:text-status-error-text"
         type="button"
         onClick={() => setShowWithdrawModal(true)}
       >
@@ -290,6 +291,7 @@ export default function MyPage({ profile }) {
                 type="button"
                 onClick={() => {
                   setShowWithdrawModal(false);
+                  setWithdrawConfirmText("");
                   setShowWithdrawFinalModal(true);
                 }}
               >
@@ -326,10 +328,20 @@ export default function MyPage({ profile }) {
             <p className="mt-2 text-sm text-text-secondary">
               이 버튼을 누르면 계정과 개인 정보가 삭제됩니다.
             </p>
+            <label className="mt-4 grid gap-1.5 text-sm text-text-secondary">
+              계속하려면 아래에 <strong className="text-text-primary">탈퇴</strong>를 입력해 주세요.
+              <input
+                className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+                value={withdrawConfirmText}
+                onChange={(event) => setWithdrawConfirmText(event.target.value)}
+                placeholder="탈퇴"
+                disabled={withdrawing}
+              />
+            </label>
             <div className="mt-5 flex gap-2.5">
               <button
-                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-status-error-text px-5 font-semibold text-white hover:opacity-80 disabled:cursor-progress disabled:opacity-65"
-                disabled={withdrawing}
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl bg-status-error-text px-5 font-semibold text-white hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-65"
+                disabled={withdrawing || withdrawConfirmText.trim() !== "탈퇴"}
                 type="button"
                 onClick={handleWithdraw}
               >
