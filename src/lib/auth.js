@@ -138,10 +138,6 @@ export function getHomePath(profile) {
     return '/admin'
   }
 
-  if (profile.role === 'pending') {
-    return '/pending'
-  }
-
   return '/volunteer'
 }
 
