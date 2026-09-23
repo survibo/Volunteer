@@ -28,7 +28,15 @@ export default function PendingPage({ profile }) {
       </p>
       <p className="text-sm text-text-secondary">
         아래 계좌로 가입비(6만원)를 입금해 주세요.<br/>
-        MOU 기관은 50% 할인(3만원)입니다.
+        <a
+          href="https://link24.kr/FLabCkZ"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-action-default underline underline-offset-2 hover:text-action-hover"
+        >
+          MOU 기관
+        </a>
+        은 50% 할인(3만원)입니다.
       </p>
       <div className="flex flex-wrap gap-2.5">
         <button
