@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
 import AppFrame from './components/AppFrame'
 import PublicDetailFrame from './components/PublicDetailFrame'
 import AddToHomeScreen from './components/AddToHomeScreen'
@@ -48,6 +48,7 @@ function PublicOnly({ children }) {
 
 function ProtectedRoute({ adminOnly = false, children }) {
   const { data: profile, isLoading, error } = useCurrentProfile()
+  const location = useLocation()
 
   if (isLoading) {
     return <LoadingScreen />
@@ -59,6 +60,11 @@ function ProtectedRoute({ adminOnly = false, children }) {
 
   if (!profile) {
     return <Navigate to="/" replace />
+  }
+
+  // 영문 이름 필수화 이전 가입자용. english_name이 비어 있는 사용자가 0명이 되면 삭제한다.
+  if (!profile.english_name && location.pathname !== '/mypage/edit') {
+    return <Navigate to="/mypage/edit" replace />
   }
 
   if (adminOnly && profile.role !== 'admin') {
@@ -77,6 +83,11 @@ function OptionalAuthRoute({ children }) {
 
   if (error) {
     return <ErrorScreen message={error.message} />
+  }
+
+  // 영문 이름 필수화 이전 가입자용. ProtectedRoute와 함께 삭제한다.
+  if (profile && !profile.english_name) {
+    return <Navigate to="/mypage/edit" replace />
   }
 
   if (profile) {
