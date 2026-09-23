@@ -7,6 +7,7 @@ import AvatarCropper from '../../components/AvatarCropper'
 
 const emptyForm = {
   name: '',
+  english_name: '',
   phone: '',
   email: '',
   address: '',
@@ -98,6 +99,7 @@ export default function RegisterPage() {
     setErrorMessage('')
 
     const name = form.name.trim()
+    const english_name = form.english_name.trim()
     const phone = form.phone.trim()
     const email = form.email.trim()
     const address = form.address.trim()
@@ -108,7 +110,7 @@ export default function RegisterPage() {
     const volunteer_experience = form.volunteer_experience.trim() || null
     const education_experience = form.education_experience.trim() || null
 
-    if (!name || !phone || !email || !address || !address_detail || !workplace_or_school || !birthday) {
+    if (!name || !english_name || !phone || !email || !address || !address_detail || !workplace_or_school || !birthday) {
       setSaving(false)
       setErrorMessage('필수 항목을 모두 입력해 주세요.')
       return
@@ -129,6 +131,7 @@ export default function RegisterPage() {
       id: session.user.id,
       role: 'pending',
       name,
+      english_name,
       phone,
       email,
       address,
@@ -192,6 +195,17 @@ export default function RegisterPage() {
               required
               value={form.name}
               onChange={updateField}
+            />
+          </label>
+          <label className="grid gap-2 text-xs font-semibold text-text-secondary">
+            <span>영문 이름 <span className="text-status-error-text">*</span></span>
+            <input
+              className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+              name="english_name"
+              required
+              value={form.english_name}
+              onChange={updateField}
+              placeholder="Hong, Gil Dong"
             />
           </label>
           <div className="col-span-full grid gap-3">

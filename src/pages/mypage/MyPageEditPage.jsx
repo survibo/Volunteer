@@ -10,6 +10,7 @@ export default function MyPageEditPage({ profile }) {
   const updateProfileMutation = useUpdateOwnProfile()
   const [form, setForm] = useState({
     name: profile.name ?? '',
+    english_name: profile.english_name ?? '',
     phone: profile.phone ?? '',
     email: profile.email ?? '',
     address: profile.address ?? '',
@@ -50,6 +51,7 @@ export default function MyPageEditPage({ profile }) {
     setErrorMessage('')
 
     const name = form.name.trim()
+    const english_name = form.english_name.trim()
     const phone = form.phone.trim()
     const email = form.email.trim()
     const address = baseAddress || form.address
@@ -60,7 +62,7 @@ export default function MyPageEditPage({ profile }) {
     const volunteer_experience = form.volunteer_experience.trim() || null
     const education_experience = form.education_experience.trim() || null
 
-    if (!name || !phone || !email || !address || !address_detail || !workplace_or_school || !birthday) {
+    if (!name || !english_name || !phone || !email || !address || !address_detail || !workplace_or_school || !birthday) {
       setSaving(false)
       setErrorMessage('필수 항목을 모두 입력해 주세요.')
       return
@@ -82,6 +84,7 @@ export default function MyPageEditPage({ profile }) {
     try {
       await updateProfileMutation.mutateAsync({
         name,
+        english_name,
         phone,
         email,
         address,
@@ -108,6 +111,9 @@ export default function MyPageEditPage({ profile }) {
         <h1 className="text-3xl font-bold leading-tight text-text-primary md:text-5xl">
           프로필 수정
         </h1>
+        {!profile.english_name && (
+          <p className="mt-3 text-sm text-status-error-text">영문 이름이 필수 항목으로 추가되었습니다. 영문 이름을 입력하고 저장해 주세요.</p>
+        )}
       </div>
 
       <form
@@ -183,6 +189,17 @@ export default function MyPageEditPage({ profile }) {
             required
             value={form.name}
             onChange={updateField}
+          />
+        </label>
+        <label className="grid gap-2 text-xs font-semibold text-text-secondary">
+          <span>영문 이름 <span className="text-status-error-text">*</span></span>
+          <input
+            className="min-h-11 w-full rounded-lg border border-border-default bg-white px-3 text-text-primary placeholder:text-text-tertiary"
+            name="english_name"
+            required
+            value={form.english_name}
+            onChange={updateField}
+            placeholder="Hong, Gil Dong"
           />
         </label>
         

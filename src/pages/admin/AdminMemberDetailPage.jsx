@@ -258,6 +258,10 @@ export default function AdminMemberDetailPage() {
 
       <dl className="m-0 grid gap-4 rounded-xl border border-border-default bg-surface-base p-5 sm:p-6">
         <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
+          <dt className="font-medium text-text-secondary">영문 이름</dt>
+          <dd className="m-0">{member.english_name || '-'}</dd>
+        </div>
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[120px_1fr] md:gap-3">
           <dt className="font-medium text-text-secondary">회원번호</dt>
           <dd className="m-0">{member.member_number ?? '미부여'}</dd>
         </div>

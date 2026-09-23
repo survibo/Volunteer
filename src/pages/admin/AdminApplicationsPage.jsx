@@ -297,6 +297,7 @@ export default function AdminApplicationsPage({ table }) {
       .map((app) => [
         formatExportDate(app.created_at),
         app.users?.name ?? "",
+        app.users?.english_name ?? "",
         applicantMemberLabel(app.users),
         app.users?.phone ?? "",
         app.users?.email ?? "",
@@ -313,6 +314,7 @@ export default function AdminApplicationsPage({ table }) {
       [
         "신청 일시",
         "이름",
+        "영문 이름",
         "회원번호",
         "전화번호",
         "이메일",
@@ -324,10 +326,11 @@ export default function AdminApplicationsPage({ table }) {
       ],
       ...rows,
     ]);
-    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }];
+    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }];
     worksheet["!cols"] = [
       { wch: 18 },
       { wch: 14 },
+      { wch: 20 },
       { wch: 12 },
       { wch: 16 },
       { wch: 28 },

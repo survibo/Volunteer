@@ -27,6 +27,18 @@
 
 create extension if not exists pgcrypto;
 
+-- ---------------------------------------------------------------------------
+-- 1.1 Default Privileges
+-- ---------------------------------------------------------------------------
+-- Supabase는 public 스키마에 새로 만드는 테이블/함수/시퀀스에 anon, authenticated
+-- ALL 권한을 기본으로 준다. 이 파일은 필요한 권한만 명시적으로 grant하므로
+-- 객체 생성 전에 기본 권한을 걷어낸다. (TRUNCATE는 RLS를 우회한다.)
+-- ---------------------------------------------------------------------------
+
+alter default privileges for role postgres in schema public revoke all on tables    from anon, authenticated;
+alter default privileges for role postgres in schema public revoke all on functions from anon, authenticated;
+alter default privileges for role postgres in schema public revoke all on sequences from anon, authenticated;
+
 
 -- =============================================================================
 -- 2. Storage Buckets
@@ -110,6 +122,7 @@ create table if not exists public.users (
   role                 public.user_role  not null default 'pending',
   member_number        text              unique,
   name                 text              not null,
+  english_name         text,
   phone                text              not null,
   email                text              not null,
   address              text              not null,
@@ -126,6 +139,9 @@ create table if not exists public.users (
   approved_by          uuid              references public.users(id) on delete set null,
   created_at           timestamptz       not null default now(),
   updated_at           timestamptz       not null default now(),
+  -- 기존 사용자는 비어 있을 수 있다. 비어 있는 사용자가 0명이 되면 not null로 바꾼다.
+  constraint users_english_name_not_blank_check
+    check (english_name is null or btrim(english_name) <> ''),
   constraint users_member_number_format_check
     check (member_number is null or member_number ~ '^\d{2}-\d{4}$'),
   constraint users_member_number_required_for_member_check
@@ -562,9 +578,11 @@ grant usage on type public.notification_type to authenticated;
 
 grant select, insert on table public.users                        to authenticated;
 grant select on table public.withdrawn_users                      to authenticated;
-grant select, insert, update, delete on table public.volunteer_activities   to anon, authenticated;
+grant select, insert, update, delete on table public.volunteer_activities   to authenticated;
+grant select on table public.volunteer_activities                           to anon;
 grant select, insert, update on table public.volunteer_applications         to authenticated;
-grant select, insert, update, delete on table public.educations             to anon, authenticated;
+grant select, insert, update, delete on table public.educations             to authenticated;
+grant select on table public.educations                                     to anon;
 grant select, insert, update on table public.education_applications         to authenticated;
 grant select, insert, update, delete on table public.application_admin_memos to authenticated;
 grant select, update on table public.notifications                to authenticated;
@@ -744,6 +762,7 @@ end;
 $$;
 
 drop function if exists public.update_own_profile(text, text, text, text, text, date, text, text, text, text, text);
+drop function if exists public.update_own_profile(text, text, text, text, text, date, text, text, text, text, text, text);
 create function public.update_own_profile(
   new_name                  text,
   new_phone                 text,
@@ -751,6 +770,7 @@ create function public.update_own_profile(
   new_address               text,
   new_workplace_or_school   text,
   new_birthday              date,
+  new_english_name          text,
   new_address_detail        text default '',
   new_license_number        text default null,
   new_volunteer_experience  text default null,
@@ -767,8 +787,13 @@ begin
     raise exception 'active user required';
   end if;
 
+  if new_english_name is null or btrim(new_english_name) = '' then
+    raise exception 'english name required';
+  end if;
+
   update public.users
   set name = new_name,
+      english_name = new_english_name,
       phone = new_phone,
       email = new_email,
       address = new_address,
@@ -1118,7 +1143,7 @@ revoke all on function public.cancel_registration() from public;
 revoke all on function public.approve_member(uuid, text) from public;
 revoke all on function public.grant_admin(uuid, text) from public;
 revoke all on function public.cancel_member_approval(uuid) from public;
-revoke all on function public.update_own_profile(text, text, text, text, text, date, text, text, text, text, text) from public;
+revoke all on function public.update_own_profile(text, text, text, text, text, date, text, text, text, text, text, text) from public;
 revoke all on function public.cancel_own_volunteer_application(uuid) from public;
 revoke all on function public.withdraw_current_user() from public;
 revoke all on function public.cancel_own_education_application(uuid) from public;
@@ -1131,7 +1156,7 @@ grant execute on function public.cancel_registration() to authenticated;
 grant execute on function public.approve_member(uuid, text) to authenticated;
 grant execute on function public.grant_admin(uuid, text) to authenticated;
 grant execute on function public.cancel_member_approval(uuid) to authenticated;
-grant execute on function public.update_own_profile(text, text, text, text, text, date, text, text, text, text, text) to authenticated;
+grant execute on function public.update_own_profile(text, text, text, text, text, date, text, text, text, text, text, text) to authenticated;
 grant execute on function public.cancel_own_volunteer_application(uuid) to authenticated;
 grant execute on function public.withdraw_current_user() to authenticated;
 grant execute on function public.cancel_own_education_application(uuid) to authenticated;
@@ -1918,7 +1943,7 @@ create policy "push_config_select_public_key"
 -- =============================================================================
 -- Supabase Storage buckets: volunteer, education, avatars
 -- Public bucket으로 생성하고, 파일 조회는 공개 URL을 사용한다.
--- 업로드/교체/삭제는 관리자만 허용한다(avatars는 모든 인증 사용자 허용).
+-- 업로드/교체/삭제는 관리자만 허용한다(avatars는 인증 사용자 업로드, 본인 파일만 교체/삭제).
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
@@ -1995,18 +2020,21 @@ create policy "Authenticated users can upload avatars bucket objects"
     and auth.role() = 'authenticated'
   );
 
+-- 수정/삭제는 업로드한 본인(owner_id)만 허용한다.
 drop policy if exists "Authenticated users can update avatars bucket objects" on storage.objects;
-create policy "Authenticated users can update avatars bucket objects"
+drop policy if exists "Users can update own avatars bucket objects" on storage.objects;
+create policy "Users can update own avatars bucket objects"
   on storage.objects for update
   to authenticated
-  using (bucket_id = 'avatars' and auth.role() = 'authenticated')
-  with check (bucket_id = 'avatars' and auth.role() = 'authenticated');
+  using (bucket_id = 'avatars' and owner_id = (select auth.uid())::text)
+  with check (bucket_id = 'avatars' and owner_id = (select auth.uid())::text);
 
 drop policy if exists "Authenticated users can delete avatars bucket objects" on storage.objects;
-create policy "Authenticated users can delete avatars bucket objects"
+drop policy if exists "Users can delete own avatars bucket objects" on storage.objects;
+create policy "Users can delete own avatars bucket objects"
   on storage.objects for delete
   to authenticated
-  using (bucket_id = 'avatars' and auth.role() = 'authenticated');
+  using (bucket_id = 'avatars' and owner_id = (select auth.uid())::text);
 
 
 -- =============================================================================

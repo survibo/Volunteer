@@ -15,9 +15,10 @@ export function useUpdateOwnProfile() {
   return useMutation({
     mutationFn: (payload) => updateOwnProfile(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["current-profile"] });
       queryClient.invalidateQueries({ queryKey: ["members"] });
       queryClient.invalidateQueries({ queryKey: ["member"] });
+      // 영문 이름 입력 강제 이동 판단이 최신 프로필을 보도록 갱신을 기다린다.
+      return queryClient.invalidateQueries({ queryKey: ["current-profile"] });
     },
   });
 }

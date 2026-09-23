@@ -159,6 +159,7 @@ export default function AdminPage() {
 
       return [
         member.name,
+        member.english_name,
         member.member_number,
         member.phone,
         member.email,
@@ -266,6 +267,7 @@ export default function AdminPage() {
       .map((member) => [
         formatExportDate(member.created_at),
         member.name ?? "",
+        member.english_name ?? "",
         memberNumberText(member),
         roleLabel(member.role),
         member.phone ?? "",
@@ -282,6 +284,7 @@ export default function AdminPage() {
       [
         "가입일",
         "이름",
+        "영문 이름",
         "회원번호",
         "구분",
         "전화번호",
@@ -293,10 +296,11 @@ export default function AdminPage() {
       ],
       ...rows,
     ]);
-    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }];
+    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }];
     worksheet["!cols"] = [
       { wch: 16 },
       { wch: 12 },
+      { wch: 20 },
       { wch: 12 },
       { wch: 10 },
       { wch: 16 },

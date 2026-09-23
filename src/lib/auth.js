@@ -112,6 +112,7 @@ export async function withdrawCurrentUser() {
 export async function updateOwnProfile(payload) {
   const { error } = await supabase.rpc('update_own_profile', {
     new_name: payload.name,
+    new_english_name: payload.english_name,
     new_phone: payload.phone,
     new_email: payload.email,
     new_address: payload.address,
@@ -136,10 +137,6 @@ export function getHomePath(profile) {
 
   if (profile.role === 'admin') {
     return '/admin'
-  }
-
-  if (profile.role === 'pending') {
-    return '/pending'
   }
 
   return '/volunteer'
